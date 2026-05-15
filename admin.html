@@ -229,6 +229,26 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
 .check-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--bdr);border-radius:var(--rad2);cursor:pointer;transition:var(--tr)}
 .day-tog{display:flex;align-items:center;gap:5px;cursor:pointer;background:var(--bg3);border:1px solid var(--bdr);border-radius:6px;padding:6px 11px;font-size:12px;font-weight:700;transition:var(--tr)}
 .day-tog:has(input:checked){background:rgba(212,175,55,.14);border-color:var(--gold);color:var(--gold)}
+/* HORAIRES UI */
+.hor-team-hdr{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg2);border-radius:var(--rad2);border-left:3px solid var(--gold);margin-bottom:10px}
+.hor-team-ico{font-size:18px;flex-shrink:0}
+.hor-team-title{font-size:11px;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:1px}
+.hor-team-sub{font-size:10px;color:var(--txt2);margin-top:2px;font-weight:400}
+.hor-emp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px}
+.hor-emp-card{background:var(--bg2);border:1.5px solid var(--bdr);border-radius:var(--rad2);padding:11px 12px;cursor:pointer;transition:var(--tr);display:flex;align-items:center;gap:10px;user-select:none}
+.hor-emp-card:hover{border-color:var(--bdr2);background:var(--bg4)}
+.hor-emp-card.hec-sel{border-color:var(--gold);background:var(--glow);box-shadow:0 0 0 1px var(--gold3) inset}
+.hor-emp-card .ec-av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;transition:var(--tr)}
+.hor-emp-card .ec-name{font-size:12px;font-weight:700;color:var(--txt);line-height:1.2;transition:var(--tr)}
+.hor-emp-card .ec-role{font-size:10px;color:var(--txt2);margin-top:2px}
+.hor-emp-card.hec-sel .ec-name{color:var(--gold)}
+.hor-empty{font-size:12px;color:var(--txt3);padding:10px 0;font-style:italic}
+.hor-radio-row{display:flex;gap:3px;background:var(--bg2);border-radius:var(--rad2);padding:3px;border:1px solid var(--bdr)}
+.hor-radio-opt{flex:1}
+.hor-radio-opt input{position:absolute;opacity:0;width:0;height:0}
+.hor-radio-opt label{display:flex;align-items:center;justify-content:center;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;color:var(--txt2);transition:var(--tr);width:100%}
+.hor-radio-opt label:hover{color:var(--txt)}
+.hor-radio-opt input:checked+label{background:linear-gradient(135deg,var(--gold),var(--gold3));color:#000;box-shadow:0 2px 8px rgba(212,175,55,.3)}
 .check-row:hover{border-color:var(--bdr2);background:var(--bg4)}
 .check-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--gold);cursor:pointer}
 
@@ -389,48 +409,66 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
       <div class="sec-hd">
         <div><div class="sec-title">Envoyer Horaires</div><div class="sec-sub">Créer et publier les horaires</div></div>
       </div>
-      <div class="g2">
-        <div class="card">
-          <div class="card-hd"><div class="card-title">Nouvel Horaire</div></div>
+      <div class="g2" style="align-items:start">
 
-          <div class="fg">
-            <label style="display:flex;align-items:center;justify-content:space-between">
-              <span>Équipe Bureau</span>
-              <span style="font-size:10px;color:var(--txt2);font-weight:400">📍 Bureau Heureka automatique</span>
-            </label>
-            <div id="hor-emp-bureau" style="display:flex;flex-direction:column;gap:6px;max-height:150px;overflow-y:auto"></div>
+        <!-- FORMULAIRE -->
+        <div class="card" style="display:flex;flex-direction:column">
+
+          <!-- Titre -->
+          <div style="font-size:15px;font-weight:800;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--bdr)">Nouvel Horaire</div>
+
+          <!-- Équipe Bureau -->
+          <div class="hor-team-hdr">
+            <span class="hor-team-ico">🏢</span>
+            <div>
+              <div class="hor-team-title">Équipe Bureau</div>
+              <div class="hor-team-sub">📍 Bureau Heureka assigné automatiquement</div>
+            </div>
           </div>
+          <div id="hor-emp-bureau" class="hor-emp-grid"></div>
 
-          <div class="fg">
-            <label>Équipe Chantier</label>
-            <div id="hor-emp-chantier" style="display:flex;flex-direction:column;gap:6px;max-height:150px;overflow-y:auto"></div>
+          <!-- Équipe Chantier -->
+          <div class="hor-team-hdr">
+            <span class="hor-team-ico">🏗</span>
+            <div>
+              <div class="hor-team-title">Équipe Chantier</div>
+              <div class="hor-team-sub">Shop Heureka · Chantiers actifs</div>
+            </div>
           </div>
+          <div id="hor-emp-chantier" class="hor-emp-grid"></div>
 
+          <!-- Sélection chantier (Équipe Chantier seulement) -->
           <div class="fg" id="hor-job-wrap" style="display:none">
             <label>Chantier</label>
             <select id="hor-job"></select>
           </div>
 
-          <div class="fg"><label>Date</label><input type="date" id="hor-date"></div>
-          <div class="fgrid">
-            <div class="fg"><label>Heure début</label><input type="time" id="hor-start" value="07:00"></div>
-            <div class="fg"><label>Heure fin</label><input type="time" id="hor-end" value="16:00"></div>
+          <!-- Date + Début + Fin sur la même ligne -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
+            <div class="fg" style="margin:0"><label>Date</label><input type="date" id="hor-date"></div>
+            <div class="fg" style="margin:0"><label>Début</label><input type="time" id="hor-start" value="07:00"></div>
+            <div class="fg" style="margin:0"><label>Fin</label><input type="time" id="hor-end" value="16:00"></div>
           </div>
 
+          <!-- Répétition -->
           <div class="fg">
             <label>Répétition</label>
-            <div style="display:flex;gap:14px">
-              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
-                <input type="radio" name="hor-repeat" value="once" checked onchange="onHorRepeatChange()"> Une seule fois
-              </label>
-              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
-                <input type="radio" name="hor-repeat" value="repeat" onchange="onHorRepeatChange()"> Jours spécifiques
-              </label>
+            <div class="hor-radio-row">
+              <div class="hor-radio-opt" style="position:relative">
+                <input type="radio" id="hor-rep-once" name="hor-repeat" value="once" checked onchange="onHorRepeatChange()">
+                <label for="hor-rep-once">Une seule fois</label>
+              </div>
+              <div class="hor-radio-opt" style="position:relative">
+                <input type="radio" id="hor-rep-days" name="hor-repeat" value="repeat" onchange="onHorRepeatChange()">
+                <label for="hor-rep-days">Jours spécifiques</label>
+              </div>
             </div>
           </div>
-          <div id="hor-repeat-wrap" style="display:none;flex-direction:column;gap:12px;padding:12px;background:var(--bg2);border-radius:var(--rad2);border:1px solid var(--bdr)">
+
+          <!-- Wrap jours + date fin -->
+          <div id="hor-repeat-wrap" style="display:none;flex-direction:column;gap:14px;padding:14px;background:var(--bg2);border-radius:var(--rad2);border:1px solid var(--bdr);margin-bottom:14px">
             <div>
-              <div style="font-size:10px;color:var(--txt2);font-weight:700;letter-spacing:.5px;margin-bottom:8px">JOURS DE RÉPÉTITION</div>
+              <div style="font-size:10px;color:var(--txt2);font-weight:700;letter-spacing:.8px;margin-bottom:10px">JOURS DE RÉPÉTITION</div>
               <div style="display:flex;gap:6px">
                 <label class="day-tog"><input type="checkbox" name="hor-day" value="1" style="display:none"> Lun</label>
                 <label class="day-tog"><input type="checkbox" name="hor-day" value="2" style="display:none"> Mar</label>
@@ -440,21 +478,30 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
               </div>
             </div>
             <div class="fg" style="margin:0">
-              <label>Date de fin <span style="color:var(--txt2);font-size:10px;font-weight:400">(vide = 13 semaines)</span></label>
+              <label>Date de fin <span style="color:var(--txt2);font-size:10px;font-weight:400;text-transform:none;letter-spacing:0">(vide = 13 semaines)</span></label>
               <input type="date" id="hor-repeat-end">
             </div>
           </div>
 
-          <div class="fg"><label>Note (optionnel)</label><textarea id="hor-note" placeholder="Instructions spéciales..."></textarea></div>
-          <button class="btn btn-gold" style="width:100%" onclick="sendHoraire()">📤 Envoyer l'horaire</button>
+          <!-- Note -->
+          <div class="fg"><label>Note (optionnel)</label><textarea id="hor-note" placeholder="Instructions spéciales pour l'équipe..." style="min-height:60px"></textarea></div>
+
+          <!-- Bouton Envoyer -->
+          <button class="btn btn-gold" style="width:100%;padding:15px;font-size:15px;font-weight:800;justify-content:center;letter-spacing:.4px;border-radius:var(--rad2);margin-top:4px" onclick="sendHoraire()">📤 Envoyer l'horaire</button>
         </div>
+
+        <!-- LISTE ENVOYÉS -->
         <div class="card">
           <div class="card-hd">
-            <div class="card-title">Horaires Envoyés</div>
+            <div>
+              <div class="card-title">Horaires Envoyés</div>
+              <div class="card-sub">Historique des envois</div>
+            </div>
             <span class="badge b-gold" id="hor-count">0</span>
           </div>
-          <div id="hor-list" style="display:flex;flex-direction:column;gap:8px;max-height:540px;overflow-y:auto"></div>
+          <div id="hor-list" style="display:flex;flex-direction:column;gap:10px;max-height:600px;overflow-y:auto"></div>
         </div>
+
       </div>
     </div>
 
@@ -1423,6 +1470,23 @@ function saveShift() {
 // =====================================================
 //  HORAIRES
 // =====================================================
+function _horEmpCard(e) {
+  const c=avColor(e.fname), col=avTextColor(e.fname);
+  return `<div class="hor-emp-card" onclick="toggleHorEmp(this,'${e.id}')">
+    <input type="checkbox" name="hor-emp" value="${e.id}" style="display:none">
+    <div class="ec-av ${c}" style="color:${col}">${initials(empFullName(e))}</div>
+    <div style="min-width:0">
+      <div class="ec-name">${empFullName(e)}</div>
+      <div class="ec-role">${e.role}</div>
+    </div>
+  </div>`;
+}
+function toggleHorEmp(card, empId) {
+  card.classList.toggle('hec-sel');
+  const cb=card.querySelector('input[type="checkbox"]');
+  if(cb) cb.checked=card.classList.contains('hec-sel');
+  onHorEmpChange();
+}
 function renderHoraires() {
   document.getElementById('hor-date').value=today();
   document.querySelector('input[name="hor-repeat"][value="once"]').checked=true;
@@ -1434,25 +1498,18 @@ function renderHoraires() {
   const chantierEmps=emps.filter(e=>e.teamType!=='bureau');
   const jobs=DB.get('jobs').filter(j=>j.status==='actif'&&!j.isFixedLocation);
   populateSelect('hor-job',jobs,'id',j=>j.name,'Sélectionner un chantier...');
-  function empRow(e){
-    return `<label class="check-row">
-      <input type="checkbox" value="${e.id}" name="hor-emp" onchange="onHorEmpChange()">
-      ${empAvatar(e,26)}
-      <div><div style="font-size:12px;font-weight:700">${empFullName(e)}</div><div style="font-size:10px;color:var(--txt2)">${e.role}</div></div>
-    </label>`;
-  }
   document.getElementById('hor-emp-bureau').innerHTML=bureauEmps.length
-    ?bureauEmps.map(empRow).join('')
-    :'<div style="font-size:12px;color:var(--txt2);padding:8px">Aucun employé Équipe Bureau</div>';
+    ?bureauEmps.map(_horEmpCard).join('')
+    :'<div class="hor-empty" style="grid-column:1/-1">Aucun employé Équipe Bureau</div>';
   document.getElementById('hor-emp-chantier').innerHTML=chantierEmps.length
-    ?chantierEmps.map(empRow).join('')
-    :'<div style="font-size:12px;color:var(--txt2);padding:8px">Aucun employé Équipe Chantier</div>';
+    ?chantierEmps.map(_horEmpCard).join('')
+    :'<div class="hor-empty" style="grid-column:1/-1">Aucun employé Équipe Chantier</div>';
   onHorEmpChange();
   renderHorairesList();
 }
 function onHorEmpChange() {
   const checked=[...document.querySelectorAll('input[name="hor-emp"]:checked')].map(c=>c.value);
-  const hasChantier=checked.some(id=>{const e=getEmp(id);return e.teamType!=='bureau';});
+  const hasChantier=checked.some(id=>getEmp(id).teamType!=='bureau');
   document.getElementById('hor-job-wrap').style.display=hasChantier?'':'none';
 }
 function onHorRepeatChange() {
@@ -1465,15 +1522,19 @@ function renderHorairesList() {
   document.getElementById('hor-list').innerHTML=hs.length?hs.map(h=>{
     const jobName=getShiftJobName_(h.jobId);
     const names=h.empIds.map(id=>getEmp(id).fname).join(', ');
-    const msg=`${fmt(h.date)} ${h.start}–${h.end} @ ${jobName}${h.note?' · '+h.note:''}`;
-    return `<div style="background:var(--bg);border:1px solid var(--bdr);border-radius:var(--rad2);padding:12px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+    const isFixed=DB.get('jobs').find(j=>j.id===h.jobId&&j.isFixedLocation);
+    const jobBadge=isFixed?`<span class="badge b-blue" style="font-size:9px">📍 Lieu fixe</span>`:'';
+    return `<div style="background:var(--bg);border:1px solid var(--bdr);border-radius:var(--rad2);padding:14px;transition:var(--tr)" onmouseenter="this.style.borderColor='var(--bdr2)'" onmouseleave="this.style.borderColor='var(--bdr)'">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
         <div style="flex:1;min-width:0">
-          <div style="font-size:12px;font-weight:800;color:var(--gold)">${jobName}</div>
-          <div style="font-size:11px;color:var(--txt2);margin-top:2px">${fmt(h.date)} · ${h.start}–${h.end}</div>
-          <div style="font-size:11px;margin-top:4px">${names}</div>
-          <div style="margin-top:6px;font-size:10px;background:var(--bg2);border-radius:4px;padding:5px 8px;color:var(--txt2);font-family:monospace">📱 ${msg}</div>
-          ${h.note?`<div style="font-size:10px;color:var(--txt2);margin-top:3px;font-style:italic">${h.note}</div>`:''}
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+            <div style="font-size:13px;font-weight:800;color:var(--gold)">${jobName}</div>${jobBadge}
+          </div>
+          <div style="font-size:11px;color:var(--txt2)">${fmt(h.date)} · ${h.start}–${h.end}</div>
+          <div style="font-size:12px;margin-top:6px;font-weight:600">${names}</div>
+          <div style="margin-top:8px;font-size:10px;background:var(--bg2);border-radius:6px;padding:7px 10px;color:var(--txt2);border:1px solid var(--bdr);line-height:1.5">
+            <span style="color:var(--gold);font-weight:700">📱 SMS·</span> ${fmt(h.date)} ${h.start}–${h.end} @ ${jobName}${h.note?' · '+h.note:''}
+          </div>
         </div>
         <div style="display:flex;gap:6px;flex-direction:column;align-items:flex-end;flex-shrink:0">
           <span class="badge ${h.sent?'b-green':'b-orange'}">${h.sent?'✓ Envoyé':'Brouillon'}</span>
@@ -1481,7 +1542,10 @@ function renderHorairesList() {
         </div>
       </div>
     </div>`;
-  }).join(''):'<div style="text-align:center;color:var(--txt2);padding:30px;font-size:13px">Aucun horaire envoyé</div>';
+  }).join(''):`<div style="text-align:center;padding:40px 20px">
+    <div style="font-size:32px;margin-bottom:10px">📭</div>
+    <div style="font-size:13px;color:var(--txt2)">Aucun horaire envoyé</div>
+  </div>`;
 }
 function sendHoraire() {
   const date=document.getElementById('hor-date').value;
