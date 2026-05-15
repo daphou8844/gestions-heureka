@@ -648,12 +648,9 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
           </select>
         </div>
       </div>
-      <div id="shift-job-wrap" class="fg"><label>Chantier</label><select id="shift-job"></select></div>
-      <div id="shift-location-wrap" class="fg" style="display:none"><label>Lieu</label>
-        <select id="shift-location">
-          <option value="BUREAU_HEUREKA">Bureau Heureka</option>
-          <option value="SHOP_HEUREKA">Shop Heureka</option>
-        </select>
+      <div id="shift-job-wrap" class="fg"><label>Chantier / Lieu</label><select id="shift-job"></select></div>
+      <div id="shift-bureau-wrap" class="fg" style="display:none"><label>Lieu</label>
+        <select disabled style="opacity:.65"><option>Bureau Heureka</option></select>
       </div>
       <div class="fg"><label>Date</label><input type="date" id="shift-date"></div>
       <div class="fgrid">
@@ -1085,7 +1082,8 @@ function openModal(id) {
     document.getElementById('shift-type').value='chantier';
     onShiftTypeChange();
     populateSelect('shift-emp',DB.get('employees').filter(e=>e.active==='1'||e.active===1),'id',empFullName,'');
-    populateSelect('shift-job',DB.get('jobs').filter(j=>j.status==='actif'),'id',j=>j.name,'');
+    const _sj=document.getElementById('shift-job');
+    _sj.innerHTML='<option value="SHOP_HEUREKA">Shop Heureka</option>'+DB.get('jobs').filter(j=>j.status==='actif').map(j=>`<option value="${j.id}">${j.name}</option>`).join('');
   }
   if(id==='modal-settings') {
     const cfg=DB.cfg();
@@ -1250,7 +1248,7 @@ function openShiftCell(empId, date) {
 function onShiftTypeChange() {
   const isBureau=document.getElementById('shift-type').value==='bureau';
   document.getElementById('shift-job-wrap').style.display=isBureau?'none':'';
-  document.getElementById('shift-location-wrap').style.display=isBureau?'':'none';
+  document.getElementById('shift-bureau-wrap').style.display=isBureau?'':'none';
 }
 function getShiftJobName_(jobId) {
   if(jobId==='BUREAU_HEUREKA') return 'Bureau Heureka';
@@ -1263,7 +1261,7 @@ function saveShift() {
   const s={
     id:document.getElementById('shift-edit-id').value||uid(),
     empId:document.getElementById('shift-emp').value,
-    jobId:isBureau?document.getElementById('shift-location').value:document.getElementById('shift-job').value,
+    jobId:isBureau?'BUREAU_HEUREKA':document.getElementById('shift-job').value,
     date:document.getElementById('shift-date').value,
     start:document.getElementById('shift-start').value,
     end:document.getElementById('shift-end').value
