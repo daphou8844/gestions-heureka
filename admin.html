@@ -392,26 +392,60 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
       <div class="g2">
         <div class="card">
           <div class="card-hd"><div class="card-title">Nouvel Horaire</div></div>
+
           <div class="fg">
+            <label style="display:flex;align-items:center;justify-content:space-between">
+              <span>Équipe Bureau</span>
+              <span style="font-size:10px;color:var(--txt2);font-weight:400">📍 Bureau Heureka automatique</span>
+            </label>
+            <div id="hor-emp-bureau" style="display:flex;flex-direction:column;gap:6px;max-height:150px;overflow-y:auto"></div>
+          </div>
+
+          <div class="fg">
+            <label>Équipe Chantier</label>
+            <div id="hor-emp-chantier" style="display:flex;flex-direction:column;gap:6px;max-height:150px;overflow-y:auto"></div>
+          </div>
+
+          <div class="fg" id="hor-job-wrap" style="display:none">
             <label>Chantier</label>
             <select id="hor-job"></select>
           </div>
-          <div class="fg">
-            <label>Date</label>
-            <input type="date" id="hor-date">
-          </div>
+
+          <div class="fg"><label>Date</label><input type="date" id="hor-date"></div>
           <div class="fgrid">
             <div class="fg"><label>Heure début</label><input type="time" id="hor-start" value="07:00"></div>
             <div class="fg"><label>Heure fin</label><input type="time" id="hor-end" value="16:00"></div>
           </div>
+
           <div class="fg">
-            <label>Employés assignés</label>
-            <div id="hor-employees" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto"></div>
+            <label>Répétition</label>
+            <div style="display:flex;gap:14px">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+                <input type="radio" name="hor-repeat" value="once" checked onchange="onHorRepeatChange()"> Une seule fois
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+                <input type="radio" name="hor-repeat" value="repeat" onchange="onHorRepeatChange()"> Jours spécifiques
+              </label>
+            </div>
           </div>
-          <div class="fg">
-            <label>Note (optionnel)</label>
-            <textarea id="hor-note" placeholder="Instructions spéciales..."></textarea>
+          <div id="hor-repeat-wrap" style="display:none;flex-direction:column;gap:12px;padding:12px;background:var(--bg2);border-radius:var(--rad2);border:1px solid var(--bdr)">
+            <div>
+              <div style="font-size:10px;color:var(--txt2);font-weight:700;letter-spacing:.5px;margin-bottom:8px">JOURS DE RÉPÉTITION</div>
+              <div style="display:flex;gap:6px">
+                <label class="day-tog"><input type="checkbox" name="hor-day" value="1" style="display:none"> Lun</label>
+                <label class="day-tog"><input type="checkbox" name="hor-day" value="2" style="display:none"> Mar</label>
+                <label class="day-tog"><input type="checkbox" name="hor-day" value="3" style="display:none"> Mer</label>
+                <label class="day-tog"><input type="checkbox" name="hor-day" value="4" style="display:none"> Jeu</label>
+                <label class="day-tog"><input type="checkbox" name="hor-day" value="5" style="display:none"> Ven</label>
+              </div>
+            </div>
+            <div class="fg" style="margin:0">
+              <label>Date de fin <span style="color:var(--txt2);font-size:10px;font-weight:400">(vide = 13 semaines)</span></label>
+              <input type="date" id="hor-repeat-end">
+            </div>
           </div>
+
+          <div class="fg"><label>Note (optionnel)</label><textarea id="hor-note" placeholder="Instructions spéciales..."></textarea></div>
           <button class="btn btn-gold" style="width:100%" onclick="sendHoraire()">📤 Envoyer l'horaire</button>
         </div>
         <div class="card">
@@ -419,7 +453,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
             <div class="card-title">Horaires Envoyés</div>
             <span class="badge b-gold" id="hor-count">0</span>
           </div>
-          <div id="hor-list" style="display:flex;flex-direction:column;gap:8px;max-height:480px;overflow-y:auto"></div>
+          <div id="hor-list" style="display:flex;flex-direction:column;gap:8px;max-height:540px;overflow-y:auto"></div>
         </div>
       </div>
     </div>
@@ -1391,56 +1425,110 @@ function saveShift() {
 // =====================================================
 function renderHoraires() {
   document.getElementById('hor-date').value=today();
+  document.querySelector('input[name="hor-repeat"][value="once"]').checked=true;
+  document.querySelectorAll('input[name="hor-day"]').forEach(c=>c.checked=false);
+  document.getElementById('hor-repeat-end').value='';
+  onHorRepeatChange();
   const emps=DB.get('employees').filter(e=>e.active==='1'||e.active===1);
+  const bureauEmps=emps.filter(e=>e.teamType==='bureau');
+  const chantierEmps=emps.filter(e=>e.teamType!=='bureau');
   const jobs=DB.get('jobs').filter(j=>j.status==='actif'&&!j.isFixedLocation);
   populateSelect('hor-job',jobs,'id',j=>j.name,'Sélectionner un chantier...');
-  document.getElementById('hor-employees').innerHTML=emps.map(e=>`
-    <label class="check-row">
-      <input type="checkbox" value="${e.id}" name="hor-emp">
+  function empRow(e){
+    return `<label class="check-row">
+      <input type="checkbox" value="${e.id}" name="hor-emp" onchange="onHorEmpChange()">
       ${empAvatar(e,26)}
       <div><div style="font-size:12px;font-weight:700">${empFullName(e)}</div><div style="font-size:10px;color:var(--txt2)">${e.role}</div></div>
-    </label>`).join('');
+    </label>`;
+  }
+  document.getElementById('hor-emp-bureau').innerHTML=bureauEmps.length
+    ?bureauEmps.map(empRow).join('')
+    :'<div style="font-size:12px;color:var(--txt2);padding:8px">Aucun employé Équipe Bureau</div>';
+  document.getElementById('hor-emp-chantier').innerHTML=chantierEmps.length
+    ?chantierEmps.map(empRow).join('')
+    :'<div style="font-size:12px;color:var(--txt2);padding:8px">Aucun employé Équipe Chantier</div>';
+  onHorEmpChange();
   renderHorairesList();
 }
+function onHorEmpChange() {
+  const checked=[...document.querySelectorAll('input[name="hor-emp"]:checked')].map(c=>c.value);
+  const hasChantier=checked.some(id=>{const e=getEmp(id);return e.teamType!=='bureau';});
+  document.getElementById('hor-job-wrap').style.display=hasChantier?'':'none';
+}
+function onHorRepeatChange() {
+  const isRepeat=document.querySelector('input[name="hor-repeat"]:checked').value==='repeat';
+  document.getElementById('hor-repeat-wrap').style.display=isRepeat?'flex':'none';
+}
 function renderHorairesList() {
-  const hs=DB.get('horaires').sort((a,b)=>b.date.localeCompare(a.date));
+  const hs=DB.get('horaires').sort((a,b)=>b.date.localeCompare(a.date)||((b.sentAt||'').localeCompare(a.sentAt||'')));
   document.getElementById('hor-count').textContent=hs.length;
   document.getElementById('hor-list').innerHTML=hs.length?hs.map(h=>{
-    const j=getJob(h.jobId);
-    const names=h.empIds.map(id=>{const e=getEmp(id);return e.fname;}).join(', ');
+    const jobName=getShiftJobName_(h.jobId);
+    const names=h.empIds.map(id=>getEmp(id).fname).join(', ');
+    const msg=`${fmt(h.date)} ${h.start}–${h.end} @ ${jobName}${h.note?' · '+h.note:''}`;
     return `<div style="background:var(--bg);border:1px solid var(--bdr);border-radius:var(--rad2);padding:12px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div>
-          <div style="font-size:12px;font-weight:800;color:var(--gold)">${j.name}</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:800;color:var(--gold)">${jobName}</div>
           <div style="font-size:11px;color:var(--txt2);margin-top:2px">${fmt(h.date)} · ${h.start}–${h.end}</div>
           <div style="font-size:11px;margin-top:4px">${names}</div>
+          <div style="margin-top:6px;font-size:10px;background:var(--bg2);border-radius:4px;padding:5px 8px;color:var(--txt2);font-family:monospace">📱 ${msg}</div>
           ${h.note?`<div style="font-size:10px;color:var(--txt2);margin-top:3px;font-style:italic">${h.note}</div>`:''}
         </div>
-        <div style="display:flex;gap:6px;flex-direction:column;align-items:flex-end">
+        <div style="display:flex;gap:6px;flex-direction:column;align-items:flex-end;flex-shrink:0">
           <span class="badge ${h.sent?'b-green':'b-orange'}">${h.sent?'✓ Envoyé':'Brouillon'}</span>
           <button class="btn btn-red btn-sm" onclick="deleteHoraire('${h.id}')">🗑</button>
         </div>
       </div>
     </div>`;
-  }).join('') : '<div style="text-align:center;color:var(--txt2);padding:30px;font-size:13px">Aucun horaire envoyé</div>';
+  }).join(''):'<div style="text-align:center;color:var(--txt2);padding:30px;font-size:13px">Aucun horaire envoyé</div>';
 }
 function sendHoraire() {
-  const jobId=document.getElementById('hor-job').value;
   const date=document.getElementById('hor-date').value;
   const start=document.getElementById('hor-start').value;
   const end=document.getElementById('hor-end').value;
-  const note=document.getElementById('hor-note').value;
-  const empIds=[...document.querySelectorAll('input[name="hor-emp"]:checked')].map(c=>c.value);
-  if(!jobId||!date||!start||!end){toast('Remplir tous les champs','err');return;}
-  if(!empIds.length){toast('Sélectionner au moins un employé','err');return;}
-  const h={id:uid(),jobId,date,start,end,empIds,note,sent:true,sentAt:new Date().toISOString()};
-  const hs=DB.get('horaires'); hs.push(h); DB.set('horaires',hs);
-  // Also create shifts
-  const shifts=DB.get('shifts');
-  empIds.forEach(empId=>{ shifts.push({id:uid(),empId,jobId,date,start,end}); });
-  DB.set('shifts',shifts);
+  const note=document.getElementById('hor-note').value.trim();
+  const allChecked=[...document.querySelectorAll('input[name="hor-emp"]:checked')].map(c=>c.value);
+  if(!date||!start||!end){toast('Remplir date et heures','err');return;}
+  if(!allChecked.length){toast('Sélectionner au moins un employé','err');return;}
+  const bureauIds=allChecked.filter(id=>getEmp(id).teamType==='bureau');
+  const chantierIds=allChecked.filter(id=>getEmp(id).teamType!=='bureau');
+  const chantierJobId=document.getElementById('hor-job').value;
+  if(chantierIds.length&&!chantierJobId){toast('Sélectionner un chantier pour l\'Équipe Chantier','err');return;}
+  const bureauJob=DB.get('jobs').find(j=>j.isFixedLocation&&j.fixedTeam==='bureau');
+  const bureauJobId=bureauJob?bureauJob.id:'__bureau_heureka__';
+  // Générer les dates (simple ou répété)
+  const isRepeat=document.querySelector('input[name="hor-repeat"]:checked').value==='repeat';
+  let dates=[date];
+  if(isRepeat){
+    const days=[...document.querySelectorAll('input[name="hor-day"]:checked')].map(c=>parseInt(c.value));
+    if(!days.length){toast('Cochez au moins un jour','err');return;}
+    const endStr=document.getElementById('hor-repeat-end').value;
+    const[sy,sm,sd]=date.split('-').map(Number);
+    const startD=new Date(sy,sm-1,sd);
+    const endD=endStr?(()=>{const[ey,em,ed]=endStr.split('-').map(Number);return new Date(ey,em-1,ed);})():new Date(sy,sm-1,sd+13*7);
+    dates=[];
+    const cur=new Date(startD);
+    while(cur<=endD&&dates.length<500){if(days.includes(cur.getDay()))dates.push(isoDate(cur));cur.setDate(cur.getDate()+1);}
+    if(!dates.length){toast('Aucun jour correspond','err');return;}
+  }
+  const hs=DB.get('horaires'),shifts=DB.get('shifts');
+  let totalH=0;
+  dates.forEach(d=>{
+    if(bureauIds.length){
+      hs.push({id:uid(),jobId:bureauJobId,date:d,start,end,empIds:bureauIds,note,sent:true,sentAt:new Date().toISOString()});
+      bureauIds.forEach(empId=>shifts.push({id:uid(),empId,jobId:bureauJobId,date:d,start,end}));
+      totalH++;
+    }
+    if(chantierIds.length){
+      hs.push({id:uid(),jobId:chantierJobId,date:d,start,end,empIds:chantierIds,note,sent:true,sentAt:new Date().toISOString()});
+      chantierIds.forEach(empId=>shifts.push({id:uid(),empId,jobId:chantierJobId,date:d,start,end}));
+      totalH++;
+    }
+  });
+  DB.set('horaires',hs); DB.set('shifts',shifts);
   renderHorairesList();
-  toast('Horaire envoyé à '+empIds.length+' employé(s) ✓','ok');
+  toast(isRepeat?`${totalH} horaire${totalH>1?'s':''} créé${totalH>1?'s':''} (${allChecked.length} emp.) ✓`:`Horaire envoyé à ${allChecked.length} employé${allChecked.length>1?'s':''} ✓`,'ok');
   syncSheets('horaires');
 }
 function deleteHoraire(id) {
