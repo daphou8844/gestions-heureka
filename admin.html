@@ -555,6 +555,17 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
         <div class="fg"><label>Contremaître</label><select id="job-foreman"></select></div>
       </div>
       <div class="fg"><label>Notes</label><textarea id="job-notes"></textarea></div>
+      <div class="fg" style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg2);border-radius:var(--rad2)">
+        <input type="checkbox" id="job-fixed-location" onchange="onJobFixedChange()" style="width:16px;height:16px;accent-color:var(--gold);flex-shrink:0">
+        <label for="job-fixed-location" style="cursor:pointer;font-size:13px;font-weight:600;margin:0">Lieu fixe <span style="color:var(--txt2);font-weight:400;font-size:11px">(n'apparaît pas dans les envois d'horaires)</span></label>
+      </div>
+      <div id="job-fixed-team-wrap" class="fg" style="display:none">
+        <label>Équipe associée au lieu fixe</label>
+        <select id="job-fixed-team">
+          <option value="bureau">Équipe Bureau</option>
+          <option value="chantier">Équipe Chantier</option>
+        </select>
+      </div>
     </div>
     <div class="m-foot">
       <button class="btn btn-outline" onclick="closeModal('modal-job')">Annuler</button>
@@ -590,10 +601,18 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
         <div class="fg"><label>Email</label><input type="email" id="emp-email"></div>
       </div>
       <div class="fg"><label>NAS (4 derniers chiffres)</label><input type="text" id="emp-nas" maxlength="4" placeholder="XXXX"></div>
-      <div class="fg"><label>Statut</label>
-        <select id="emp-active">
-          <option value="1">Actif</option><option value="0">Inactif</option>
-        </select>
+      <div class="fgrid">
+        <div class="fg"><label>Statut</label>
+          <select id="emp-active">
+            <option value="1">Actif</option><option value="0">Inactif</option>
+          </select>
+        </div>
+        <div class="fg"><label>Type d'équipe</label>
+          <select id="emp-teamtype">
+            <option value="chantier">Équipe Chantier</option>
+            <option value="bureau">Équipe Bureau</option>
+          </select>
+        </div>
       </div>
     </div>
     <div class="m-foot">
@@ -639,19 +658,8 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
     </div>
     <div class="m-body">
       <input type="hidden" id="shift-edit-id">
-      <div class="fgrid">
-        <div class="fg"><label>Employé</label><select id="shift-emp"></select></div>
-        <div class="fg"><label>Type d'équipe</label>
-          <select id="shift-type" onchange="onShiftTypeChange()">
-            <option value="chantier">Équipe Chantier</option>
-            <option value="bureau">Équipe Bureau</option>
-          </select>
-        </div>
-      </div>
-      <div id="shift-job-wrap" class="fg"><label>Chantier / Lieu</label><select id="shift-job"></select></div>
-      <div id="shift-bureau-wrap" class="fg" style="display:none"><label>Lieu</label>
-        <select disabled style="opacity:.65"><option>Bureau Heureka</option></select>
-      </div>
+      <div class="fg"><label>Employé</label><select id="shift-emp" onchange="onShiftEmpChange()"></select></div>
+      <div class="fg"><label>Chantier / Lieu</label><select id="shift-job"></select></div>
       <div class="fg"><label>Date</label><input type="date" id="shift-date"></div>
       <div class="fgrid">
         <div class="fg"><label>Début</label><input type="time" id="shift-start" value="07:00"></div>
@@ -768,12 +776,12 @@ const initials = name => name.trim().split(' ').map(w=>w[0]).join('').toUpperCas
 function seedDemo() {
   if (DB.get('seeded').length) return;
   const emps = [
-    {id:'e1',fname:'Marc',lname:'Beauchamp',role:'Contremaître',rate:32,phone:'514-555-0101',email:'marc@email.com',nas:'1234',active:'1'},
-    {id:'e2',fname:'Luc',lname:'Tremblay',role:'Charpentier',rate:28,phone:'514-555-0102',email:'luc@email.com',nas:'2345',active:'1'},
-    {id:'e3',fname:'Kevin',lname:'Ouellet',role:'Directeur',rate:35,phone:'514-555-0103',email:'kevin@email.com',nas:'3456',active:'1'},
-    {id:'e4',fname:'Mathieu',lname:'Roy',role:'Adjointe à la direction',rate:33,phone:'514-555-0104',email:'mathieu@email.com',nas:'4567',active:'1'},
-    {id:'e5',fname:'Steve',lname:'Gagnon',role:'Adjointe administrative',rate:22,phone:'514-555-0105',email:'steve@email.com',nas:'5678',active:'1'},
-    {id:'e6',fname:'Jimmy',lname:'Côté',role:'Service aux ventes',rate:30,phone:'514-555-0106',email:'jimmy@email.com',nas:'6789',active:'1'},
+    {id:'e1',fname:'Marc',lname:'Beauchamp',role:'Contremaître',teamType:'chantier',rate:32,phone:'514-555-0101',email:'marc@email.com',nas:'1234',active:'1'},
+    {id:'e2',fname:'Luc',lname:'Tremblay',role:'Charpentier',teamType:'chantier',rate:28,phone:'514-555-0102',email:'luc@email.com',nas:'2345',active:'1'},
+    {id:'e3',fname:'Kevin',lname:'Ouellet',role:'Directeur',teamType:'bureau',rate:35,phone:'514-555-0103',email:'kevin@email.com',nas:'3456',active:'1'},
+    {id:'e4',fname:'Mathieu',lname:'Roy',role:'Adjointe à la direction',teamType:'bureau',rate:33,phone:'514-555-0104',email:'mathieu@email.com',nas:'4567',active:'1'},
+    {id:'e5',fname:'Steve',lname:'Gagnon',role:'Adjointe administrative',teamType:'bureau',rate:22,phone:'514-555-0105',email:'steve@email.com',nas:'5678',active:'1'},
+    {id:'e6',fname:'Jimmy',lname:'Côté',role:'Service aux ventes',teamType:'bureau',rate:30,phone:'514-555-0106',email:'jimmy@email.com',nas:'6789',active:'1'},
   ];
   const jobs = [
     {id:'j1',name:'Résidence Tremblay',client:'Famille Tremblay',address:'45 rue des Pins, Laval',status:'actif',start:'2026-04-01',end:'2026-07-15',budget:180000,foreman:'e1',notes:'Extension 2 étages'},
@@ -817,6 +825,27 @@ function seedDemo() {
   DB.set('horaires',horaires);
   DB.set('seeded',['yes']);
   DB.setCfg({company:'Gestions Heureka',otRate:1.5,otHours:40,scriptUrl:''});
+}
+
+// =====================================================
+//  LIEUX FIXES (Bureau Heureka + Shop Heureka)
+// =====================================================
+function initFixedLocations() {
+  const jobs = DB.get('jobs');
+  let changed = false;
+  if (!jobs.find(j=>j.id==='__bureau_heureka__')) {
+    jobs.push({id:'__bureau_heureka__',name:'Bureau Heureka',client:'',address:'',
+      status:'actif',start:'',end:'',budget:0,foreman:'',notes:'',
+      isFixedLocation:true,fixedTeam:'bureau'});
+    changed = true;
+  }
+  if (!jobs.find(j=>j.id==='__shop_heureka__')) {
+    jobs.push({id:'__shop_heureka__',name:'Shop Heureka',client:'',address:'',
+      status:'actif',start:'',end:'',budget:0,foreman:'',notes:'',
+      isFixedLocation:true,fixedTeam:'chantier'});
+    changed = true;
+  }
+  if (changed) DB.set('jobs', jobs);
 }
 
 // =====================================================
@@ -1054,7 +1083,7 @@ function renderJobsTable(jobs) {
       <td>${jobStatusBadge(j.status)}</td>
       <td style="font-size:12px">${fmt(j.start)}</td>
       <td style="font-size:12px">${fmt(j.end)}</td>
-      <td><span class="badge b-${empCount>0?'green':'gray'}">${empCount} présent${empCount>1?'s':''}</span></td>
+      <td>${j.isFixedLocation?`<span class="badge b-blue">📍 Lieu fixe · ${j.fixedTeam==='bureau'?'Bureau':'Chantier'}</span>`:`<span class="badge b-${empCount>0?'green':'gray'}">${empCount} présent${empCount>1?'s':''}</span>`}</td>
       <td>
         <div style="display:flex;gap:6px">
           <button class="btn btn-outline btn-sm" onclick="openJobGallery('${j.id}')" title="Galerie photos">📷${photoCnt?`<span style="margin-left:3px;font-size:10px;font-weight:800;color:var(--gold)">${photoCnt}</span>`:''}</button>
@@ -1069,7 +1098,7 @@ function filterJobs(v) { jobFilter=v.toLowerCase(); renderJobsTable(DB.get('jobs
 function filterJobsStatus(v) { jobStatusFilter=v; renderJobsTable(DB.get('jobs')); }
 function openModal(id) {
   document.getElementById(id).classList.add('open');
-  if(id==='modal-job') { document.getElementById('job-edit-id').value=''; document.getElementById('modal-job-title').textContent='Nouveau chantier'; }
+  if(id==='modal-job') { document.getElementById('job-edit-id').value=''; document.getElementById('modal-job-title').textContent='Nouveau chantier'; document.getElementById('job-fixed-location').checked=false; onJobFixedChange(); }
   if(id==='modal-emp') { document.getElementById('emp-edit-id').value=''; document.getElementById('modal-emp-title').textContent='Nouvel employé'; }
   if(id==='modal-punch') {
     document.getElementById('punch-edit-id').value='';
@@ -1079,11 +1108,8 @@ function openModal(id) {
   }
   if(id==='modal-shift') {
     document.getElementById('shift-date').value=today();
-    document.getElementById('shift-type').value='chantier';
-    onShiftTypeChange();
     populateSelect('shift-emp',DB.get('employees').filter(e=>e.active==='1'||e.active===1),'id',empFullName,'');
-    const _sj=document.getElementById('shift-job');
-    _sj.innerHTML='<option value="SHOP_HEUREKA">Shop Heureka</option>'+DB.get('jobs').filter(j=>j.status==='actif').map(j=>`<option value="${j.id}">${j.name}</option>`).join('');
+    onShiftEmpChange();
   }
   if(id==='modal-settings') {
     const cfg=DB.cfg();
@@ -1094,8 +1120,13 @@ function openModal(id) {
   }
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function onJobFixedChange() {
+  const isFixed=document.getElementById('job-fixed-location').checked;
+  document.getElementById('job-fixed-team-wrap').style.display=isFixed?'':'none';
+}
 function saveJob() {
   const id = document.getElementById('job-edit-id').value || uid();
+  const isFixed=document.getElementById('job-fixed-location').checked;
   const job = {
     id, name:document.getElementById('job-name').value.trim(),
     client:document.getElementById('job-client').value.trim(),
@@ -1105,7 +1136,9 @@ function saveJob() {
     end:document.getElementById('job-end').value,
     budget:parseFloat(document.getElementById('job-budget').value)||0,
     foreman:document.getElementById('job-foreman').value,
-    notes:document.getElementById('job-notes').value.trim()
+    notes:document.getElementById('job-notes').value.trim(),
+    isFixedLocation:isFixed,
+    fixedTeam:isFixed?document.getElementById('job-fixed-team').value:''
   };
   if(!job.name){toast('Nom du chantier requis','err');return;}
   const jobs = DB.get('jobs');
@@ -1130,6 +1163,9 @@ function editJob(id) {
   document.getElementById('job-budget').value=j.budget;
   document.getElementById('job-foreman').value=j.foreman;
   document.getElementById('job-notes').value=j.notes;
+  document.getElementById('job-fixed-location').checked=!!j.isFixedLocation;
+  document.getElementById('job-fixed-team').value=j.fixedTeam||'bureau';
+  onJobFixedChange();
 }
 function deleteJob(id) {
   if(!confirm('Supprimer ce chantier?')) return;
@@ -1243,12 +1279,23 @@ function renderPlanningMonth() {
 function openShiftCell(empId, date) {
   openModal('modal-shift');
   document.getElementById('shift-date').value=date;
-  if(empId) document.getElementById('shift-emp').value=empId;
+  if(empId) { document.getElementById('shift-emp').value=empId; onShiftEmpChange(); }
 }
-function onShiftTypeChange() {
-  const isBureau=document.getElementById('shift-type').value==='bureau';
-  document.getElementById('shift-job-wrap').style.display=isBureau?'none':'';
-  document.getElementById('shift-bureau-wrap').style.display=isBureau?'':'none';
+function onShiftEmpChange() {
+  const empId=document.getElementById('shift-emp').value;
+  const emp=getEmp(empId);
+  const teamType=emp.teamType||'chantier';
+  const allJobs=DB.get('jobs').filter(j=>j.status==='actif');
+  const sel=document.getElementById('shift-job');
+  if(teamType==='bureau') {
+    const opts=allJobs.filter(j=>j.isFixedLocation&&j.fixedTeam==='bureau');
+    sel.innerHTML=opts.length?opts.map(j=>`<option value="${j.id}">${j.name}</option>`).join(''):'<option value="">Aucun lieu bureau configuré</option>';
+  } else {
+    const fixed=allJobs.filter(j=>j.isFixedLocation&&j.fixedTeam==='chantier');
+    const normal=allJobs.filter(j=>!j.isFixedLocation);
+    const opts=[...fixed,...normal];
+    sel.innerHTML=opts.length?opts.map(j=>`<option value="${j.id}">${j.name}</option>`).join(''):'<option value="">Aucun chantier actif</option>';
+  }
 }
 function getShiftJobName_(jobId) {
   if(jobId==='BUREAU_HEUREKA') return 'Bureau Heureka';
@@ -1257,11 +1304,10 @@ function getShiftJobName_(jobId) {
   return j?j.name:jobId||'—';
 }
 function saveShift() {
-  const isBureau=document.getElementById('shift-type').value==='bureau';
   const s={
     id:document.getElementById('shift-edit-id').value||uid(),
     empId:document.getElementById('shift-emp').value,
-    jobId:isBureau?'BUREAU_HEUREKA':document.getElementById('shift-job').value,
+    jobId:document.getElementById('shift-job').value,
     date:document.getElementById('shift-date').value,
     start:document.getElementById('shift-start').value,
     end:document.getElementById('shift-end').value
@@ -1282,7 +1328,7 @@ function saveShift() {
 function renderHoraires() {
   document.getElementById('hor-date').value=today();
   const emps=DB.get('employees').filter(e=>e.active==='1'||e.active===1);
-  const jobs=DB.get('jobs').filter(j=>j.status==='actif');
+  const jobs=DB.get('jobs').filter(j=>j.status==='actif'&&!j.isFixedLocation);
   populateSelect('hor-job',jobs,'id',j=>j.name,'Sélectionner un chantier...');
   document.getElementById('hor-employees').innerHTML=emps.map(e=>`
     <label class="check-row">
@@ -1588,7 +1634,7 @@ function renderEquipeCards(emps) {
         <div style="flex:1">
           <div style="font-weight:800;font-size:14px">${empFullName(e)}</div>
           <div style="font-size:12px;color:var(--txt2)">${e.role}</div>
-          <div style="margin-top:4px">${active?'<span class="badge b-green">Actif</span>':'<span class="badge b-gray">Inactif</span>'} ${isIn?'<span class="badge b-gold">Sur chantier</span>':''}</div>
+          <div style="margin-top:4px">${active?'<span class="badge b-green">Actif</span>':'<span class="badge b-gray">Inactif</span>'} <span class="badge b-blue">${e.teamType==='bureau'?'Équipe Bureau':'Équipe Chantier'}</span> ${isIn?'<span class="badge b-gold">Sur chantier</span>':''}</div>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
@@ -1621,7 +1667,8 @@ function saveEmployee() {
     phone:document.getElementById('emp-phone').value.trim(),
     email:document.getElementById('emp-email').value.trim(),
     nas:document.getElementById('emp-nas').value.trim(),
-    active:document.getElementById('emp-active').value
+    active:document.getElementById('emp-active').value,
+    teamType:document.getElementById('emp-teamtype').value
   };
   if(!e.fname){toast('Prénom requis','err');return;}
   const emps=DB.get('employees');
@@ -1645,6 +1692,7 @@ function editEmployee(id) {
   document.getElementById('emp-email').value=e.email||'';
   document.getElementById('emp-nas').value=e.nas||'';
   document.getElementById('emp-active').value=e.active;
+  document.getElementById('emp-teamtype').value=e.teamType||'chantier';
 }
 function deleteEmployee(id) {
   if(!confirm('Supprimer cet employé? Ses punchs seront conservés.')) return;
@@ -1725,6 +1773,7 @@ document.querySelectorAll('.overlay').forEach(o=>{
 //  INIT
 // =====================================================
 seedDemo();
+initFixedLocations();
 renderDashboard();
 document.getElementById('topbar-btn').style.display='none';
 // Auto-refresh live view every 30 seconds
