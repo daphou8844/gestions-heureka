@@ -345,7 +345,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
           <option value="actif">Actif</option>
           <option value="pause">En pause</option>
           <option value="termine">Terminé</option>
-          <option value="soumission">Soumission</option>
+          <option value="a_programmer">À programmer</option>
         </select>
       </div>
       <div class="card" style="padding:0">
@@ -511,8 +511,8 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
         <div class="srch"><span class="srch-ico">🔍</span><input type="text" placeholder="Rechercher..." oninput="filterEquipe(this.value)"></div>
         <select style="background:var(--bg3);border:1px solid var(--bdr);border-radius:var(--rad2);padding:8px 12px;color:var(--txt);font-size:13px;outline:none" onchange="filterEquipeRole(this.value)">
           <option value="">Tous les rôles</option>
-          <option>Contremaître</option><option>Charpentier</option><option>Électricien</option>
-          <option>Plombier</option><option>Manœuvre</option><option>Opérateur</option>
+          <option>Directeur</option><option>Adjointe à la direction</option><option>Adjointe administrative</option>
+          <option>Service aux ventes</option><option>Contremaître</option><option>Charpentier</option>
         </select>
       </div>
       <div class="g3" id="equipe-cards"></div>
@@ -540,7 +540,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
         <div class="fg"><label>Client</label><input type="text" id="job-client"></div>
         <div class="fg"><label>Statut</label>
           <select id="job-status">
-            <option value="actif">Actif</option><option value="soumission">Soumission</option>
+            <option value="actif">Actif</option><option value="a_programmer">À programmer</option>
             <option value="pause">En pause</option><option value="termine">Terminé</option>
           </select>
         </div>
@@ -579,8 +579,8 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
       <div class="fgrid">
         <div class="fg"><label>Rôle</label>
           <select id="emp-role">
-            <option>Contremaître</option><option>Charpentier</option><option>Électricien</option>
-            <option>Plombier</option><option>Manœuvre</option><option>Opérateur</option>
+            <option>Directeur</option><option>Adjointe à la direction</option><option>Adjointe administrative</option>
+            <option>Service aux ventes</option><option>Contremaître</option><option>Charpentier</option>
           </select>
         </div>
         <div class="fg"><label>Taux horaire ($)</label><input type="number" id="emp-rate" placeholder="25.00" step="0.50"></div>
@@ -641,7 +641,19 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
       <input type="hidden" id="shift-edit-id">
       <div class="fgrid">
         <div class="fg"><label>Employé</label><select id="shift-emp"></select></div>
-        <div class="fg"><label>Chantier</label><select id="shift-job"></select></div>
+        <div class="fg"><label>Type d'équipe</label>
+          <select id="shift-type" onchange="onShiftTypeChange()">
+            <option value="chantier">Équipe Chantier</option>
+            <option value="bureau">Équipe Bureau</option>
+          </select>
+        </div>
+      </div>
+      <div id="shift-job-wrap" class="fg"><label>Chantier</label><select id="shift-job"></select></div>
+      <div id="shift-location-wrap" class="fg" style="display:none"><label>Lieu</label>
+        <select id="shift-location">
+          <option value="BUREAU_HEUREKA">Bureau Heureka</option>
+          <option value="SHOP_HEUREKA">Shop Heureka</option>
+        </select>
       </div>
       <div class="fg"><label>Date</label><input type="date" id="shift-date"></div>
       <div class="fgrid">
@@ -761,16 +773,16 @@ function seedDemo() {
   const emps = [
     {id:'e1',fname:'Marc',lname:'Beauchamp',role:'Contremaître',rate:32,phone:'514-555-0101',email:'marc@email.com',nas:'1234',active:'1'},
     {id:'e2',fname:'Luc',lname:'Tremblay',role:'Charpentier',rate:28,phone:'514-555-0102',email:'luc@email.com',nas:'2345',active:'1'},
-    {id:'e3',fname:'Kevin',lname:'Ouellet',role:'Électricien',rate:35,phone:'514-555-0103',email:'kevin@email.com',nas:'3456',active:'1'},
-    {id:'e4',fname:'Mathieu',lname:'Roy',role:'Plombier',rate:33,phone:'514-555-0104',email:'mathieu@email.com',nas:'4567',active:'1'},
-    {id:'e5',fname:'Steve',lname:'Gagnon',role:'Manœuvre',rate:22,phone:'514-555-0105',email:'steve@email.com',nas:'5678',active:'1'},
-    {id:'e6',fname:'Jimmy',lname:'Côté',role:'Opérateur',rate:30,phone:'514-555-0106',email:'jimmy@email.com',nas:'6789',active:'1'},
+    {id:'e3',fname:'Kevin',lname:'Ouellet',role:'Directeur',rate:35,phone:'514-555-0103',email:'kevin@email.com',nas:'3456',active:'1'},
+    {id:'e4',fname:'Mathieu',lname:'Roy',role:'Adjointe à la direction',rate:33,phone:'514-555-0104',email:'mathieu@email.com',nas:'4567',active:'1'},
+    {id:'e5',fname:'Steve',lname:'Gagnon',role:'Adjointe administrative',rate:22,phone:'514-555-0105',email:'steve@email.com',nas:'5678',active:'1'},
+    {id:'e6',fname:'Jimmy',lname:'Côté',role:'Service aux ventes',rate:30,phone:'514-555-0106',email:'jimmy@email.com',nas:'6789',active:'1'},
   ];
   const jobs = [
     {id:'j1',name:'Résidence Tremblay',client:'Famille Tremblay',address:'45 rue des Pins, Laval',status:'actif',start:'2026-04-01',end:'2026-07-15',budget:180000,foreman:'e1',notes:'Extension 2 étages'},
     {id:'j2',name:'Entrepôt Industriel A',client:'Cie Logistik Inc.',address:'1200 boul. Industriel, Longueuil',status:'actif',start:'2026-03-15',end:'2026-09-30',budget:450000,foreman:'e1',notes:'Structure acier'},
     {id:'j3',name:'Condo Le Plateau',client:'Promoteur Urbain SA',address:'2300 av. du Parc, Montréal',status:'pause',start:'2026-02-01',end:'2026-12-01',budget:890000,foreman:'e1',notes:'12 unités'},
-    {id:'j4',name:'Garage Résidentiel',client:'Paul Simard',address:'78 rue Laurier, Brossard',status:'soumission',start:'2026-05-20',end:'2026-06-15',budget:35000,foreman:'e1',notes:'Détaché double'},
+    {id:'j4',name:'Garage Résidentiel',client:'Paul Simard',address:'78 rue Laurier, Brossard',status:'a_programmer',start:'2026-05-20',end:'2026-06-15',budget:35000,foreman:'e1',notes:'Détaché double'},
   ];
   const t = today();
   const [ty,tm,td] = t.split('-').map(Number);
@@ -869,8 +881,8 @@ function empAvatar(e,size=36,cls='') {
   return `<div class="${c}" style="width:${size}px;height:${size}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*.35)}px;font-weight:800;color:${col};flex-shrink:0${cls?' '+cls:''}">${initials(empFullName(e))}</div>`;
 }
 function jobStatusBadge(s) {
-  const m={actif:'b-green',pause:'b-orange',termine:'b-gray',soumission:'b-blue'};
-  const l={actif:'Actif',pause:'En pause',termine:'Terminé',soumission:'Soumission'};
+  const m={actif:'b-green',pause:'b-orange',termine:'b-gray',a_programmer:'b-blue'};
+  const l={actif:'Actif',pause:'En pause',termine:'Terminé',a_programmer:'À programmer'};
   return `<span class="badge ${m[s]||'b-gray'}">${l[s]||s}</span>`;
 }
 function populateSelect(selId, items, valKey, lblFn, placeholder) {
@@ -1022,7 +1034,7 @@ function renderJobs() {
   const jobs = DB.get('jobs');
   const emps = DB.get('employees');
   // Populate foreman select
-  populateSelect('job-foreman', emps.filter(e=>e.active==='1'||e.active===1), 'id', e=>empFullName(e), 'Sélectionner...');
+  populateSelect('job-foreman', emps.filter(e=>(e.active==='1'||e.active===1)&&e.role==='Contremaître'), 'id', e=>empFullName(e), 'Sélectionner...');
   renderJobsTable(jobs);
 }
 function renderJobsTable(jobs) {
@@ -1070,6 +1082,8 @@ function openModal(id) {
   }
   if(id==='modal-shift') {
     document.getElementById('shift-date').value=today();
+    document.getElementById('shift-type').value='chantier';
+    onShiftTypeChange();
     populateSelect('shift-emp',DB.get('employees').filter(e=>e.active==='1'||e.active===1),'id',empFullName,'');
     populateSelect('shift-job',DB.get('jobs').filter(j=>j.status==='actif'),'id',j=>j.name,'');
   }
@@ -1151,7 +1165,7 @@ function getWeekDates(offset) {
   const base=new Date(y,m-1,d);
   const dow=base.getDay()||7;
   const mon=new Date(y,m-1,d-(dow-1)+offset*7);
-  return Array.from({length:7},(_,i)=>{ const x=new Date(mon); x.setDate(mon.getDate()+i); return x; });
+  return Array.from({length:5},(_,i)=>{ const x=new Date(mon); x.setDate(mon.getDate()+i); return x; });
 }
 function setPlanView(v) {
   planView=v;
@@ -1165,12 +1179,12 @@ function renderPlanning() { if(planView==='month') renderPlanningMonth(); else r
 function renderPlanningWeek() {
   const dates=getWeekDates(weekOffset);
   const t=today();
-  const days=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+  const days=['Lun','Mar','Mer','Jeu','Ven'];
   const emps=DB.get('employees').filter(e=>e.active==='1'||e.active===1);
   const shifts=DB.get('shifts');
-  const d0=dates[0], d6=dates[6];
+  const d0=dates[0], d4=dates[4];
   document.getElementById('plan-week-label').textContent=
-    `${d0.toLocaleDateString('fr-CA',{day:'numeric',month:'short',timeZone:'America/Toronto'})} — ${d6.toLocaleDateString('fr-CA',{day:'numeric',month:'short',year:'numeric',timeZone:'America/Toronto'})}`;
+    `${d0.toLocaleDateString('fr-CA',{day:'numeric',month:'short',timeZone:'America/Toronto'})} — ${d4.toLocaleDateString('fr-CA',{day:'numeric',month:'short',year:'numeric',timeZone:'America/Toronto'})}`;
   let html='<div class="plan-grid">';
   html+=`<div class="ph" style="border-top:none">Employé</div>`;
   dates.forEach((d,i)=>{
@@ -1185,8 +1199,8 @@ function renderPlanningWeek() {
       const dayShifts=shifts.filter(s=>s.empId===e.id&&s.date===iso);
       html+=`<div class="pc" onclick="openShiftCell('${e.id}','${iso}')">`;
       dayShifts.forEach(s=>{
-        const j=getJob(s.jobId);
-        html+=`<div class="shift" title="${j.name}">${s.start}-${s.end}<br>${j.name.slice(0,12)}</div>`;
+        const jName=getShiftJobName_(s.jobId);
+        html+=`<div class="shift" title="${jName}">${s.start}-${s.end}<br>${jName.slice(0,12)}</div>`;
       });
       html+=`</div>`;
     });
@@ -1217,8 +1231,8 @@ function renderPlanningMonth() {
     const seen=new Set();
     dayShifts.forEach(s=>{
       if(seen.has(s.empId)) return; seen.add(s.empId);
-      const e=getEmp(s.empId), j=getJob(s.jobId);
-      html+=`<div class="pm-shift" title="${empFullName(e)} — ${j.name}">${e.fname}: ${j.name.slice(0,10)}</div>`;
+      const e=getEmp(s.empId), jName=getShiftJobName_(s.jobId);
+      html+=`<div class="pm-shift" title="${empFullName(e)} — ${jName}">${e.fname}: ${jName.slice(0,10)}</div>`;
     });
     html+=`</div>`;
   }
@@ -1233,11 +1247,23 @@ function openShiftCell(empId, date) {
   document.getElementById('shift-date').value=date;
   if(empId) document.getElementById('shift-emp').value=empId;
 }
+function onShiftTypeChange() {
+  const isBureau=document.getElementById('shift-type').value==='bureau';
+  document.getElementById('shift-job-wrap').style.display=isBureau?'none':'';
+  document.getElementById('shift-location-wrap').style.display=isBureau?'':'none';
+}
+function getShiftJobName_(jobId) {
+  if(jobId==='BUREAU_HEUREKA') return 'Bureau Heureka';
+  if(jobId==='SHOP_HEUREKA') return 'Shop Heureka';
+  const j=getJob(jobId);
+  return j?j.name:jobId||'—';
+}
 function saveShift() {
+  const isBureau=document.getElementById('shift-type').value==='bureau';
   const s={
     id:document.getElementById('shift-edit-id').value||uid(),
     empId:document.getElementById('shift-emp').value,
-    jobId:document.getElementById('shift-job').value,
+    jobId:isBureau?document.getElementById('shift-location').value:document.getElementById('shift-job').value,
     date:document.getElementById('shift-date').value,
     start:document.getElementById('shift-start').value,
     end:document.getElementById('shift-end').value
