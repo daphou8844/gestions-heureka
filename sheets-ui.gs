@@ -45,6 +45,7 @@ function onOpen() {
     .addItem('📋 Rapport hebdomadaire',         'weeklyPayrollReport')
     .addItem('📅 Planning de la semaine',       'showWeeklySchedule')
     .addSeparator()
+    .addItem('🎨 Styliser tous les onglets',   'styleAllSheets')
     .addItem('🗑 Vider Vue Live',               'clearLive')
     .addItem('⚙ Initialiser / Réparer',        'initSheetsUi')
     .addItem('ℹ À propos',                     'showAbout')
@@ -882,13 +883,18 @@ function initSheetsUi() {
   // Actualiser le dashboard maintenant
   refreshDashboardSheet();
 
+  // Appliquer le style noir/or sur tous les onglets
+  styleAllSheets(true);
+
   SpreadsheetApp.getUi().alert(
     '✅ Interface Heureka prête!',
-    'Onglet Dashboard créé et actualisé.\n\n' +
+    'Onglet Dashboard créé et actualisé.\n' +
+    'Style noir/or appliqué à tous les onglets.\n\n' +
     'Utilisez le menu 🏗 Heureka pour :\n' +
     '  · Ouvrir le Dashboard visuel (barre latérale)\n' +
     '  · Exporter la paie en PDF\n' +
-    '  · Voir le planning de la semaine\n\n' +
+    '  · Voir le planning de la semaine\n' +
+    '  · Styliser tous les onglets (re-appliquer le style)\n\n' +
     'Le Dashboard se trouve en premier onglet.',
     SpreadsheetApp.getUi().ButtonSet.OK
   );
@@ -965,4 +971,208 @@ function escHtml_(str) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+// ============================================================
+//  8. STYLISER TOUS LES ONGLETS
+// ============================================================
+
+/**
+ * Applique le thème noir/or à tous les onglets de données.
+ * @param {boolean} silent - Si true, pas d'alerte de confirmation.
+ */
+function styleAllSheets(silent) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  getSheetStyleConfigs_().forEach(cfg => {
+    const sheet = ss.getSheetByName(cfg.name);
+    if (sheet) applySheetStyle_(sheet, cfg);
+  });
+  if (!silent) {
+    SpreadsheetApp.getUi().alert(
+      '✅ Style appliqué!',
+      'Tous les onglets ont été stylisés avec le thème noir et or.',
+      SpreadsheetApp.getUi().ButtonSet.OK
+    );
+  }
+}
+
+function getSheetStyleConfigs_() {
+  return [
+    {
+      name: 'Équipe',
+      tabColor: UI_C.gold,
+      headers: ['ID', 'Prénom', 'Nom', 'Rôle', 'Taux/h ($)', 'Téléphone', 'Email', 'NAS (4 der.)', 'Actif', 'Date ajout'],
+      colWidths: [80, 110, 110, 110, 90, 120, 170, 80, 70, 110],
+      goldCols: [5],
+      statusCol: null,
+      statusRules: [],
+      formulaRules: false,
+    },
+    {
+      name: 'Jobs',
+      tabColor: UI_C.gold,
+      headers: ['ID', 'Nom chantier', 'Client', 'Adresse', 'Statut', 'Date début', 'Date fin', 'Budget ($)', 'Contremaître', 'Notes', 'Dernière MAJ'],
+      colWidths: [80, 170, 130, 170, 90, 100, 100, 90, 120, 180, 130],
+      goldCols: [8],
+      statusCol: 5,
+      statusRules: [
+        { value: 'Actif',    rowBg: '#0d1a0d', cellBg: '#1a2e1a', fg: UI_C.ok },
+        { value: 'En pause', rowBg: '#1a120d', cellBg: '#2e1e0d', fg: UI_C.warn },
+        { value: 'Terminé',  rowBg: '#141414', cellBg: '#1e1e1e', fg: UI_C.txt2 },
+      ],
+      formulaRules: false,
+    },
+    {
+      name: 'Punchs',
+      tabColor: UI_C.gold,
+      headers: ['ID', 'Employé ID', 'Nom employé', 'Job ID', 'Nom chantier', 'Date', 'Punch In', 'Punch Out', 'Heures nettes', 'Pauses (min)', 'Notes', 'Photos #', 'Source', 'Enregistré le'],
+      colWidths: [80, 80, 130, 80, 150, 100, 80, 80, 90, 70, 180, 60, 80, 130],
+      goldCols: [9],
+      statusCol: null,
+      statusRules: [
+        { formula: 'AND($H2<>"",$I2<>"")', rowBg: '#0d1a0d' },
+        { formula: 'AND($G2<>"",$H2="")',  rowBg: '#0d0d1a' },
+      ],
+      formulaRules: true,
+    },
+    {
+      name: 'Vue Live',
+      tabColor: UI_C.ok,
+      headers: ['Employé ID', 'Nom employé', 'Job ID', 'Nom chantier', 'Statut', 'Punch In', 'Date', 'Dernière MAJ'],
+      colWidths: [85, 140, 80, 160, 90, 80, 100, 140],
+      goldCols: [],
+      statusCol: 5,
+      statusRules: [
+        { value: 'IN',    rowBg: '#0d1a0d', cellBg: '#1a2e1a', fg: UI_C.ok },
+        { value: 'PAUSE', rowBg: '#1a120d', cellBg: '#2e200d', fg: UI_C.warn },
+        { value: 'OUT',   rowBg: '#141414', cellBg: '#1e1e1e', fg: UI_C.txt2 },
+      ],
+      formulaRules: false,
+    },
+    {
+      name: 'Horaires',
+      tabColor: UI_C.gold,
+      headers: ['ID', 'Job ID', 'Nom chantier', 'Date', 'Début', 'Fin', 'Employés (IDs)', 'Employés (Noms)', 'Note', 'Envoyé le'],
+      colWidths: [80, 80, 160, 100, 80, 80, 180, 180, 180, 130],
+      goldCols: [],
+      statusCol: null,
+      statusRules: [],
+      formulaRules: false,
+    },
+  ];
+}
+
+function applySheetStyle_(sheet, cfg) {
+  const lastCol = cfg.headers.length;
+  const maxRows = Math.max(sheet.getMaxRows(), 500);
+
+  // Fond global noir
+  sheet.getRange(1, 1, maxRows, lastCol)
+    .setBackground(UI_C.bg)
+    .setFontColor(UI_C.white)
+    .setFontSize(10)
+    .setVerticalAlignment('middle');
+
+  // En-tête ligne 1
+  sheet.getRange(1, 1, 1, lastCol)
+    .setValues([cfg.headers])
+    .setBackground(UI_C.bg4)
+    .setFontColor(UI_C.gold)
+    .setFontSize(10)
+    .setFontWeight('bold')
+    .setHorizontalAlignment('center')
+    .setVerticalAlignment('middle')
+    .setWrap(false);
+  sheet.setRowHeight(1, 34);
+  sheet.setFrozenRows(1);
+
+  // Largeurs de colonnes
+  cfg.colWidths.forEach((w, i) => sheet.setColumnWidth(i + 1, w));
+
+  // Hauteur des lignes de données
+  if (maxRows > 1) sheet.setRowHeights(2, maxRows - 1, 26);
+
+  // Couleur de l'onglet
+  sheet.setTabColor(cfg.tabColor || UI_C.gold);
+
+  // Construire les règles CF
+  sheet.clearConditionalFormatRules();
+  const rules = [];
+  const dataRange = sheet.getRange(2, 1, maxRows - 1, lastCol);
+
+  // Règles par formule personnalisée (ex. Punchs)
+  if (cfg.formulaRules && cfg.statusRules.length) {
+    cfg.statusRules.forEach(rule => {
+      rules.push(
+        SpreadsheetApp.newConditionalFormatRule()
+          .whenFormula(rule.formula)
+          .setBackground(rule.rowBg)
+          .setRanges([dataRange])
+          .build()
+      );
+    });
+  }
+
+  // Règles par valeur de cellule de statut
+  if (!cfg.formulaRules && cfg.statusCol && cfg.statusRules.length) {
+    const colLetter = columnLetter_(cfg.statusCol);
+    cfg.statusRules.forEach(rule => {
+      // Fond sur toute la ligne
+      rules.push(
+        SpreadsheetApp.newConditionalFormatRule()
+          .whenFormula(`$${colLetter}2="${rule.value}"`)
+          .setBackground(rule.rowBg)
+          .setRanges([dataRange])
+          .build()
+      );
+      // Fond + couleur sur la cellule statut elle-même
+      if (rule.cellBg || rule.fg) {
+        const cellRange = sheet.getRange(2, cfg.statusCol, maxRows - 1, 1);
+        const rb = SpreadsheetApp.newConditionalFormatRule()
+          .whenFormula(`$${colLetter}2="${rule.value}"`);
+        if (rule.cellBg) rb.setBackground(rule.cellBg);
+        if (rule.fg)     rb.setFontColor(rule.fg).setBold(true);
+        rules.push(rb.setRanges([cellRange]).build());
+      }
+    });
+  }
+
+  // Lignes alternées (toujours en dernier pour priorité basse)
+  rules.push(
+    SpreadsheetApp.newConditionalFormatRule()
+      .whenFormula('ISEVEN(ROW())')
+      .setBackground(UI_C.bg2)
+      .setRanges([dataRange])
+      .build()
+  );
+  rules.push(
+    SpreadsheetApp.newConditionalFormatRule()
+      .whenFormula('ISODD(ROW())')
+      .setBackground(UI_C.bg)
+      .setRanges([dataRange])
+      .build()
+  );
+
+  sheet.setConditionalFormatRules(rules);
+
+  // Colonnes or (mise en valeur)
+  cfg.goldCols.forEach(col => {
+    sheet.getRange(2, col, maxRows - 1, 1)
+      .setFontColor(UI_C.gold)
+      .setFontWeight('bold')
+      .setHorizontalAlignment('center');
+  });
+
+  // Bordure dorée sous l'en-tête
+  addBorderBottom_(sheet, 1, 1, lastCol, UI_C.gold2);
+}
+
+function columnLetter_(col) {
+  let letter = '';
+  while (col > 0) {
+    const rem = (col - 1) % 26;
+    letter = String.fromCharCode(65 + rem) + letter;
+    col = Math.floor((col - 1) / 26);
+  }
+  return letter;
 }
