@@ -227,6 +227,8 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
 
 /* INPUT CHECKBOX */
 .check-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--bdr);border-radius:var(--rad2);cursor:pointer;transition:var(--tr)}
+.day-tog{display:flex;align-items:center;gap:5px;cursor:pointer;background:var(--bg3);border:1px solid var(--bdr);border-radius:6px;padding:6px 11px;font-size:12px;font-weight:700;transition:var(--tr)}
+.day-tog:has(input:checked){background:rgba(212,175,55,.14);border-color:var(--gold);color:var(--gold)}
 .check-row:hover{border-color:var(--bdr2);background:var(--bg4)}
 .check-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--gold);cursor:pointer}
 
@@ -664,6 +666,33 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
       <div class="fgrid">
         <div class="fg"><label>Début</label><input type="time" id="shift-start" value="07:00"></div>
         <div class="fg"><label>Fin</label><input type="time" id="shift-end" value="16:00"></div>
+      </div>
+      <div class="fg">
+        <label>Répétition</label>
+        <div style="display:flex;gap:14px">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+            <input type="radio" name="shift-repeat" value="once" checked onchange="onShiftRepeatChange()"> Une seule fois
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+            <input type="radio" name="shift-repeat" value="repeat" onchange="onShiftRepeatChange()"> Jours spécifiques
+          </label>
+        </div>
+      </div>
+      <div id="shift-repeat-wrap" style="display:none;flex-direction:column;gap:12px;padding:12px;background:var(--bg2);border-radius:var(--rad2);border:1px solid var(--bdr)">
+        <div>
+          <div style="font-size:10px;color:var(--txt2);font-weight:700;letter-spacing:.5px;margin-bottom:8px">JOURS DE RÉPÉTITION</div>
+          <div style="display:flex;gap:6px">
+            <label class="day-tog"><input type="checkbox" name="shift-day" value="1" style="display:none"> Lun</label>
+            <label class="day-tog"><input type="checkbox" name="shift-day" value="2" style="display:none"> Mar</label>
+            <label class="day-tog"><input type="checkbox" name="shift-day" value="3" style="display:none"> Mer</label>
+            <label class="day-tog"><input type="checkbox" name="shift-day" value="4" style="display:none"> Jeu</label>
+            <label class="day-tog"><input type="checkbox" name="shift-day" value="5" style="display:none"> Ven</label>
+          </div>
+        </div>
+        <div class="fg" style="margin:0">
+          <label>Date de fin <span style="color:var(--txt2);font-size:10px;font-weight:400">(optionnelle — vide = 13 semaines)</span></label>
+          <input type="date" id="shift-repeat-end">
+        </div>
       </div>
     </div>
     <div class="m-foot">
@@ -1108,6 +1137,10 @@ function openModal(id) {
   }
   if(id==='modal-shift') {
     document.getElementById('shift-date').value=today();
+    document.querySelector('input[name="shift-repeat"][value="once"]').checked=true;
+    document.querySelectorAll('input[name="shift-day"]').forEach(c=>c.checked=false);
+    document.getElementById('shift-repeat-end').value='';
+    onShiftRepeatChange();
     populateSelect('shift-emp',DB.get('employees').filter(e=>e.active==='1'||e.active===1),'id',empFullName,'');
     onShiftEmpChange();
   }
@@ -1303,23 +1336,54 @@ function getShiftJobName_(jobId) {
   const j=getJob(jobId);
   return j?j.name:jobId||'—';
 }
+function onShiftRepeatChange() {
+  const isRepeat=document.querySelector('input[name="shift-repeat"]:checked').value==='repeat';
+  document.getElementById('shift-repeat-wrap').style.display=isRepeat?'flex':'none';
+}
 function saveShift() {
-  const s={
-    id:document.getElementById('shift-edit-id').value||uid(),
+  const base={
     empId:document.getElementById('shift-emp').value,
     jobId:document.getElementById('shift-job').value,
     date:document.getElementById('shift-date').value,
     start:document.getElementById('shift-start').value,
     end:document.getElementById('shift-end').value
   };
-  if(!s.empId||!s.jobId||!s.date){toast('Champs requis manquants','err');return;}
+  if(!base.empId||!base.jobId||!base.date){toast('Champs requis manquants','err');return;}
+  const isRepeat=document.querySelector('input[name="shift-repeat"]:checked').value==='repeat';
   const shifts=DB.get('shifts');
-  const idx=shifts.findIndex(x=>x.id===s.id);
-  if(idx>=0) shifts[idx]=s; else shifts.push(s);
+  if(!isRepeat) {
+    const s={...base,id:document.getElementById('shift-edit-id').value||uid()};
+    const idx=shifts.findIndex(x=>x.id===s.id);
+    if(idx>=0) shifts[idx]=s; else shifts.push(s);
+    DB.set('shifts',shifts);
+    closeModal('modal-shift');
+    renderPlanning();
+    toast('Quart enregistré ✓','ok');
+    return;
+  }
+  const days=[...document.querySelectorAll('input[name="shift-day"]:checked')].map(c=>parseInt(c.value));
+  if(!days.length){toast('Cochez au moins un jour','err');return;}
+  const endStr=document.getElementById('shift-repeat-end').value;
+  const [sy,sm,sd]=base.date.split('-').map(Number);
+  const startD=new Date(sy,sm-1,sd);
+  let endD;
+  if(endStr){const[ey,em,ed]=endStr.split('-').map(Number);endD=new Date(ey,em-1,ed);}
+  else{endD=new Date(sy,sm-1,sd+13*7);}
+  let count=0;
+  const cur=new Date(startD);
+  while(cur<=endD && count<500){
+    const dow=cur.getDay(); // 0=Sun,1=Mon...5=Fri
+    if(days.includes(dow)){
+      const iso=isoDate(cur);
+      const dup=shifts.some(x=>x.empId===base.empId&&x.jobId===base.jobId&&x.date===iso&&x.start===base.start);
+      if(!dup){shifts.push({...base,id:uid(),date:iso});count++;}
+    }
+    cur.setDate(cur.getDate()+1);
+  }
   DB.set('shifts',shifts);
   closeModal('modal-shift');
   renderPlanning();
-  toast('Quart enregistré ✓','ok');
+  toast(`${count} quart${count>1?'s':''} créé${count>1?'s':''} ✓`,'ok');
 }
 
 // =====================================================
