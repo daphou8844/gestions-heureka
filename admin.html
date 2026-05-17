@@ -1957,12 +1957,48 @@ async function syncSheets(section) {
     const data=await res.json();
     if(data.status==='ok'){
       if(data.punchs) DB.set('punchs',data.punchs);
+      // Importer les nouveaux jobs ajoutés par le pipeline dans Sheets
+      if(data.jobs && data.jobs.length){
+        const local=DB.get('jobs');
+        const localIds=new Set(local.map(j=>j.id));
+        const newJobs=data.jobs.filter(j=>j.id && !localIds.has(j.id));
+        if(newJobs.length>0){
+          DB.set('jobs',[...local,...newJobs]);
+          renderJobs();
+          toast(`📥 ${newJobs.length} nouveau${newJobs.length>1?'x':''} chantier${newJobs.length>1?'s':''} importé${newJobs.length>1?'s':''} depuis le Pipeline ✓`,'ok');
+        }
+      }
       localStorage.setItem('hk_lastsync',new Date().toISOString());
       const el=document.getElementById('job-sync-time');
       if(el) el.textContent=new Date().toLocaleTimeString('fr-CA',{timeZone:'America/Toronto'});
       toast('Sync Google Sheets réussie ✓','ok');
     } else toast('Erreur sync: '+(data.message||'Inconnue'),'err');
   } catch(err) { toast('Erreur de connexion Google Sheets','err'); }
+}
+
+async function autoSyncJobs(){
+  const cfg=DB.cfg();
+  if(!cfg.scriptUrl) return;
+  try {
+    const res=await fetch(cfg.scriptUrl+'?action=getJobs',{redirect:'follow'});
+    const data=await res.json();
+    if(data.status!=='ok'||!data.jobs||!data.jobs.length) return;
+    const local=DB.get('jobs');
+    const localIds=new Set(local.map(j=>j.id));
+    const newJobs=data.jobs.filter(j=>j.id && !localIds.has(j.id));
+    if(newJobs.length>0){
+      DB.set('jobs',[...local,...newJobs]);
+      renderJobs();
+      updateSyncTime_();
+      toast(`📥 ${newJobs.length} nouveau${newJobs.length>1?'x':''} chantier${newJobs.length>1?'s':''} reçu${newJobs.length>1?'s':''} depuis le Pipeline !`,'ok');
+    }
+  } catch(e){ /* silent — ne pas alerter si le réseau est absent */ }
+}
+
+function updateSyncTime_(){
+  localStorage.setItem('hk_lastsync',new Date().toISOString());
+  const el=document.getElementById('job-sync-time');
+  if(el) el.textContent=new Date().toLocaleTimeString('fr-CA',{timeZone:'America/Toronto'});
 }
 
 // =====================================================
@@ -1994,6 +2030,8 @@ renderDashboard();
 document.getElementById('topbar-btn').style.display='none';
 // Auto-refresh live view every 30 seconds
 setInterval(()=>{ if(currentPanel==='live') renderLive(); },30000);
+// Auto-sync jobs depuis Google Sheets toutes les 30 secondes
+setInterval(autoSyncJobs, 30000);
 // Update live badge every minute
 setInterval(()=>{
   const t=today();

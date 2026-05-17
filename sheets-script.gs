@@ -209,8 +209,10 @@ function syncAll(data) {
     bulkUpsert(punchSheet, data.punchs, punchToRow, 0);
   }
 
-  // Relire tous les punchs pour retourner à admin
+  // Relire tous les punchs ET jobs pour retourner à admin
+  // (les jobs peuvent inclure de nouveaux chantiers ajoutés par le pipeline)
   const allPunchs = readSheet(SHEETS.PUNCHS, punchFromRow);
+  const allJobs   = readSheet(SHEETS.JOBS,   jobFromRow);
 
   return {
     status:    'ok',
@@ -223,6 +225,7 @@ function syncAll(data) {
       horaires:  (data.horaires || []).length,
     },
     punchs: allPunchs,  // admin met à jour son localStorage avec ces données
+    jobs:   allJobs,    // admin importe les nouveaux chantiers du pipeline
   };
 }
 
