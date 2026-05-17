@@ -736,7 +736,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
 <div class="overlay" id="modal-shift">
   <div class="modal">
     <div class="m-hd">
-      <span class="m-title">Ajouter un quart</span>
+      <span class="m-title" id="shift-modal-title">Ajouter un quart</span>
       <button class="m-close" onclick="closeModal('modal-shift')">✕</button>
     </div>
     <div class="m-body">
@@ -778,6 +778,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
     </div>
     <div class="m-foot">
       <button class="btn btn-outline" onclick="closeModal('modal-shift')">Annuler</button>
+      <button id="shift-delete-btn" class="btn" style="display:none;background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.3)" onclick="deleteShift()">🗑 Supprimer</button>
       <button class="btn btn-gold" onclick="saveShift()">Enregistrer</button>
     </div>
   </div>
@@ -1217,6 +1218,9 @@ function openModal(id) {
     populateSelect('punch-job-sel',DB.get('jobs').filter(j=>j.status==='actif'),'id',j=>j.name,'Sélectionner...');
   }
   if(id==='modal-shift') {
+    document.getElementById('shift-edit-id').value='';
+    document.getElementById('shift-modal-title').textContent='Ajouter un quart';
+    document.getElementById('shift-delete-btn').style.display='none';
     document.getElementById('shift-date').value=today();
     document.querySelector('input[name="shift-repeat"][value="once"]').checked=true;
     document.querySelectorAll('input[name="shift-day"]').forEach(c=>c.checked=false);
@@ -1348,7 +1352,7 @@ function renderPlanningWeek() {
       html+=`<div class="pc" onclick="openShiftCell('${e.id}','${iso}')">`;
       dayShifts.forEach(s=>{
         const jName=getShiftJobName_(s.jobId);
-        html+=`<div class="shift" title="${jName}">${s.start}-${s.end}<br>${jName.slice(0,12)}</div>`;
+        html+=`<div class="shift" title="Cliquer pour modifier/supprimer" onclick="event.stopPropagation();openShiftEdit('${s.id}')">${s.start}-${s.end}<br>${jName.slice(0,12)}</div>`;
       });
       html+=`</div>`;
     });
@@ -1380,7 +1384,8 @@ function renderPlanningMonth() {
     dayShifts.forEach(s=>{
       if(seen.has(s.empId)) return; seen.add(s.empId);
       const e=getEmp(s.empId), jName=getShiftJobName_(s.jobId);
-      html+=`<div class="pm-shift" title="${empFullName(e)} — ${jName}">${e.fname}: ${jName.slice(0,10)}</div>`;
+      const dayShiftForEmp=dayShifts.find(x=>x.empId===s.empId);
+      html+=`<div class="pm-shift" title="Cliquer pour supprimer" onclick="event.stopPropagation();openShiftEdit('${dayShiftForEmp?dayShiftForEmp.id:''}')">${e.fname}: ${jName.slice(0,10)}</div>`;
     });
     html+=`</div>`;
   }
@@ -1391,9 +1396,40 @@ function renderPlanningMonth() {
   document.getElementById('plan-grid').innerHTML=html;
 }
 function openShiftCell(empId, date) {
+  document.getElementById('shift-edit-id').value='';
+  document.getElementById('shift-modal-title').textContent='Ajouter un quart';
+  document.getElementById('shift-delete-btn').style.display='none';
   openModal('modal-shift');
   document.getElementById('shift-date').value=date;
   if(empId) { document.getElementById('shift-emp').value=empId; onShiftEmpChange(); }
+}
+
+function openShiftEdit(id) {
+  if(!id) return;
+  const s=DB.get('shifts').find(x=>x.id===id);
+  if(!s) return;
+  document.getElementById('shift-edit-id').value=id;
+  document.getElementById('shift-modal-title').textContent='Modifier / Supprimer ce quart';
+  document.getElementById('shift-delete-btn').style.display='';
+  document.getElementById('shift-date').value=s.date;
+  document.getElementById('shift-start').value=s.start;
+  document.getElementById('shift-end').value=s.end;
+  document.querySelector('input[name="shift-repeat"][value="once"]').checked=true;
+  document.getElementById('shift-repeat-wrap').style.display='none';
+  populateSelect('shift-emp',DB.get('employees').filter(e=>e.active==='1'||e.active===1),'id',empFullName,'');
+  document.getElementById('shift-emp').value=s.empId;
+  onShiftEmpChange();
+  setTimeout(()=>{ document.getElementById('shift-job').value=s.jobId; },50);
+  openModal('modal-shift');
+}
+
+function deleteShift() {
+  if(!confirm('Supprimer ce quart du planning ?')) return;
+  const id=document.getElementById('shift-edit-id').value;
+  DB.set('shifts',DB.get('shifts').filter(s=>s.id!==id));
+  closeModal('modal-shift');
+  renderPlanning();
+  toast('Quart supprimé ✓','ok');
 }
 function onShiftEmpChange() {
   const empId=document.getElementById('shift-emp').value;
