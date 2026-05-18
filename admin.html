@@ -1993,17 +1993,21 @@ async function syncSheets(section) {
     const data=await res.json();
     if(data.status==='ok'){
       if(data.punchs) DB.set('punchs',data.punchs);
-      // Importer les nouveaux jobs ajoutés par le pipeline dans Sheets
-      if(data.jobs && data.jobs.length){
-        const local=DB.get('jobs');
-        const localIds=new Set(local.map(j=>j.id));
-        const newJobs=data.jobs.filter(j=>j.id && !localIds.has(j.id));
-        if(newJobs.length>0){
-          DB.set('jobs',[...local,...newJobs]);
-          renderJobs();
-          toast(`📥 ${newJobs.length} nouveau${newJobs.length>1?'x':''} chantier${newJobs.length>1?'s':''} importé${newJobs.length>1?'s':''} depuis le Pipeline ✓`,'ok');
+      // GET explicite pour lire les chantiers ajoutés par le pipeline dans le Sheet
+      try {
+        const jr=await fetch(cfg.scriptUrl+'?action=getJobs',{redirect:'follow'});
+        const jd=await jr.json();
+        if(jd.status==='ok'&&jd.jobs&&jd.jobs.length){
+          const local=DB.get('jobs');
+          const localIds=new Set(local.map(j=>j.id));
+          const newJobs=jd.jobs.filter(j=>j.id&&!localIds.has(j.id));
+          if(newJobs.length>0){
+            DB.set('jobs',[...local,...newJobs]);
+            renderJobs();
+            toast(`📥 ${newJobs.length} nouveau${newJobs.length>1?'x':''} chantier${newJobs.length>1?'s':''} importé${newJobs.length>1?'s':''} depuis le Pipeline ✓`,'ok');
+          }
         }
-      }
+      } catch(e){ /* silent */ }
       localStorage.setItem('hk_lastsync',new Date().toISOString());
       const el=document.getElementById('job-sync-time');
       if(el) el.textContent=new Date().toLocaleTimeString('fr-CA',{timeZone:'America/Toronto'});
@@ -2066,8 +2070,8 @@ renderDashboard();
 document.getElementById('topbar-btn').style.display='none';
 // Auto-refresh live view every 30 seconds
 setInterval(()=>{ if(currentPanel==='live') renderLive(); },30000);
-// Auto-sync jobs depuis Google Sheets toutes les 30 secondes
-setInterval(autoSyncJobs, 30000);
+// Auto-sync jobs depuis Google Sheets toutes les 15 secondes
+setInterval(autoSyncJobs, 15000);
 // Update live badge every minute
 setInterval(()=>{
   const t=today();
