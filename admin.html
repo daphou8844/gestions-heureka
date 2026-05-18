@@ -1117,20 +1117,6 @@ function renderDashboardAlerts() {
       actionLabel:'Corriger', action:`editPunch('${p.id}')`});
   });
 
-  // 2. Absent sans punch : horaire assigné aujourd'hui, heure de début passée, aucun punch
-  const nowHHMM=(()=>{const n=new Date();return n.toLocaleTimeString('fr-CA',{timeZone:'America/Toronto',hour:'2-digit',minute:'2-digit',hour12:false});})();
-  const todayPunchedIds=new Set(punchs.filter(p=>p.date===t).map(p=>p.empId));
-  const seenAbsent=new Set();
-  shifts.filter(s=>s.date===t && s.start && s.start<=nowHHMM).forEach(s=>{
-    if(!todayPunchedIds.has(s.empId) && !seenAbsent.has(s.empId)){
-      seenAbsent.add(s.empId);
-      const e=getEmp(s.empId), j=getJob(s.jobId);
-      alerts.push({type:'warn',icon:'👤',
-        title:'Absent / pas encore punchté',
-        msg:`${empFullName(e)} assigné à ${j.name} (${s.start}–${s.end})`,
-        actionLabel:'Punch manuel', action:`openPunchFor('${s.empId}','${s.jobId}')`});
-    }
-  });
 
   const el=document.getElementById('dash-alerts');
   if(!alerts.length){el.innerHTML='';return;}
