@@ -32,28 +32,31 @@
 // ============================================================
 
 const SHEETS = {
-  EQUIPE:   'Équipe',
-  JOBS:     'Jobs',
-  PUNCHS:   'Punchs',
-  LIVE:     'Vue Live',
-  HORAIRES: 'Horaires',
+  EQUIPE:      'Équipe',
+  JOBS:        'Jobs',
+  PUNCHS:      'Punchs',
+  LIVE:        'Vue Live',
+  HORAIRES:    'Horaires',
+  SOUMISSIONS: 'Soumissions',
 };
 
 const HEADERS = {
-  EQUIPE:   ['ID', 'Prénom', 'Nom', 'Rôle', 'Taux/h ($)', 'Téléphone', 'Email', 'NAS (4 der.)', 'Actif', 'Date ajout'],
-  JOBS:     ['ID', 'Nom chantier', 'Client', 'Adresse', 'Statut', 'Date début', 'Date fin', 'Budget ($)', 'Contremaître', 'Notes', 'Dernière MAJ'],
-  PUNCHS:   ['ID', 'Employé ID', 'Nom employé', 'Job ID', 'Nom chantier', 'Date', 'Punch In', 'Punch Out', 'Heures nettes', 'Pauses (min)', 'Notes', 'Photos #', 'Source', 'Enregistré le'],
-  LIVE:     ['Employé ID', 'Nom employé', 'Job ID', 'Nom chantier', 'Statut', 'Punch In', 'Date', 'Dernière MAJ'],
-  HORAIRES: ['ID', 'Job ID', 'Nom chantier', 'Date', 'Début', 'Fin', 'Employés (IDs)', 'Employés (Noms)', 'Note', 'Envoyé le'],
+  EQUIPE:      ['ID', 'Prénom', 'Nom', 'Rôle', 'Taux/h ($)', 'Téléphone', 'Email', 'NAS (4 der.)', 'Actif', 'Date ajout'],
+  JOBS:        ['ID', 'Nom chantier', 'Client', 'Adresse', 'Statut', 'Date début', 'Date fin', 'Budget ($)', 'Contremaître', 'Notes', 'Dernière MAJ'],
+  PUNCHS:      ['ID', 'Employé ID', 'Nom employé', 'Job ID', 'Nom chantier', 'Date', 'Punch In', 'Punch Out', 'Heures nettes', 'Pauses (min)', 'Notes', 'Photos #', 'Source', 'Enregistré le'],
+  LIVE:        ['Employé ID', 'Nom employé', 'Job ID', 'Nom chantier', 'Statut', 'Punch In', 'Date', 'Dernière MAJ'],
+  HORAIRES:    ['ID', 'Job ID', 'Nom chantier', 'Date', 'Début', 'Fin', 'Employés (IDs)', 'Employés (Noms)', 'Note', 'Envoyé le'],
+  SOUMISSIONS: ['No Soumission', 'Date', 'Client', 'Téléphone', 'Courriel', 'Adresse', 'Projet ID', 'Nom Projet', 'Coût Mat. ($)', 'Prix Mat. ($)', 'Prix M.O. ($)', 'Sous-Total ($)', 'TPS ($)', 'TVQ ($)', 'Total TTC ($)', 'Marge Mat. %', 'Hommes', 'Jours', 'Revêtement', 'Soffite', 'Fascia', 'JSON Complet'],
 };
 
 // Couleurs d'en-tête par onglet
 const COLORS = {
-  EQUIPE:   { bg: '#1a1a1a', fg: '#D4AF37' },
-  JOBS:     { bg: '#1a1a1a', fg: '#D4AF37' },
-  PUNCHS:   { bg: '#1a1a1a', fg: '#D4AF37' },
-  LIVE:     { bg: '#0d3322', fg: '#4CAF50' },
-  HORAIRES: { bg: '#1a1a2e', fg: '#D4AF37' },
+  EQUIPE:      { bg: '#1a1a1a', fg: '#D4AF37' },
+  JOBS:        { bg: '#1a1a1a', fg: '#D4AF37' },
+  PUNCHS:      { bg: '#1a1a1a', fg: '#D4AF37' },
+  LIVE:        { bg: '#0d3322', fg: '#4CAF50' },
+  HORAIRES:    { bg: '#1a1a2e', fg: '#D4AF37' },
+  SOUMISSIONS: { bg: '#1a1000', fg: '#D4AF37' },
 };
 
 // ============================================================
@@ -93,6 +96,9 @@ function doGet(e) {
           live:      readSheet(SHEETS.LIVE, liveFromRow),
           horaires:  readSheet(SHEETS.HORAIRES, horaireFromRow),
         };
+        break;
+      case 'getSoumissions':
+        result = { status: 'ok', soumissions: getSoumissions(parseInt(e.parameter.limit) || 50) };
         break;
       default:
         result = { status: 'error', message: 'Action inconnue: ' + action };
@@ -165,6 +171,11 @@ function doPost(e) {
         break;
       case 'deleteHoraire':
         result = deleteById(SHEETS.HORAIRES, data.id);
+        break;
+
+      // --- Soumission revêtement ---
+      case 'saveSoumission':
+        result = saveSoumission(data.data || data);
         break;
 
       default:
@@ -786,6 +797,76 @@ function jsonError(message) {
 }
 
 // ============================================================
+//  SOUMISSIONS REVÊTEMENT
+// ============================================================
+
+function saveSoumission(s) {
+  if (!s || !s.noSoumission) return { status: 'error', message: 'Données manquantes' };
+
+  const sheet = getOrCreateSheet(SHEETS.SOUMISSIONS, HEADERS.SOUMISSIONS, 'SOUMISSIONS');
+  const fin   = s.financier || {};
+  const mo    = s.mainOeuvre || {};
+  const sel   = s.selections || {};
+  const date  = s.date ? Utilities.formatDate(new Date(s.date), 'America/Toronto', 'yyyy-MM-dd') : Utilities.formatDate(new Date(), 'America/Toronto', 'yyyy-MM-dd');
+
+  // Vérifier si la soumission existe déjà (par No Soumission, col 0)
+  const existing = findRowById(sheet, s.noSoumission, 0);
+  const row = [
+    s.noSoumission,
+    date,
+    s.client ? s.client.nom   : '',
+    s.client ? s.client.tel   : '',
+    s.client ? s.client.email : '',
+    s.client ? s.client.adresse : '',
+    s.projetId   || '',
+    s.nomProjet  || '',
+    fin.coutMat  || 0,
+    fin.prixMat  || 0,
+    fin.prixMO   || 0,
+    fin.sousTotal || 0,
+    fin.TPS      || 0,
+    fin.TVQ      || 0,
+    fin.total    || 0,
+    s.margeMateriaux || 20,
+    mo.hommes    || 0,
+    mo.jours     || 0,
+    sel.revetement || '',
+    sel.soffite    || '',
+    sel.fascia     || '',
+    JSON.stringify(s),
+  ];
+
+  if (existing.rowIndex > 0) {
+    sheet.getRange(existing.rowIndex, 1, 1, row.length).setValues([row]);
+  } else {
+    sheet.appendRow(row);
+    // Colorier la nouvelle ligne
+    const lastRow = sheet.getLastRow();
+    sheet.getRange(lastRow, 1, 1, row.length).setBackground('#0d0d00').setFontColor('#ffffff');
+    sheet.getRange(lastRow, 15).setFontColor('#D4AF37').setFontWeight('bold'); // Total TTC
+  }
+
+  return { status: 'ok', noSoumission: s.noSoumission };
+}
+
+function getSoumissions(limit) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEETS.SOUMISSIONS);
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return [];
+
+  const headers = data[0].map(h => h.toString().trim());
+  const rows = data.slice(1).reverse().slice(0, limit || 50);
+
+  return rows.map(row => {
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = row[i] !== null && row[i] !== undefined ? row[i].toString() : ''; });
+    return obj;
+  });
+}
+
+// ============================================================
 //  INITIALISATION — créer tous les onglets
 // ============================================================
 
@@ -801,7 +882,7 @@ function initSheets() {
   });
 
   // Réorganiser l'ordre des onglets
-  const order = [SHEETS.EQUIPE, SHEETS.JOBS, SHEETS.PUNCHS, SHEETS.LIVE, SHEETS.HORAIRES];
+  const order = [SHEETS.EQUIPE, SHEETS.JOBS, SHEETS.PUNCHS, SHEETS.LIVE, SHEETS.HORAIRES, SHEETS.SOUMISSIONS];
   order.forEach((name, i) => {
     const sheet = ss.getSheetByName(name);
     if (sheet) ss.setActiveSheet(sheet), ss.moveActiveSheet(i + 1);
@@ -813,8 +894,8 @@ function initSheets() {
 
   SpreadsheetApp.getUi().alert(
     '✅ Gestions Heureka — Prêt!\n\n' +
-    '5 onglets créés:\n' +
-    '  · Équipe\n  · Jobs\n  · Punchs\n  · Vue Live\n  · Horaires\n\n' +
+    '6 onglets créés:\n' +
+    '  · Équipe\n  · Jobs\n  · Punchs\n  · Vue Live\n  · Horaires\n  · Soumissions\n\n' +
     'Prochaine étape:\n' +
     'Déployer → Nouvelle déployée → Application Web\n' +
     'Copier l\'URL /exec dans admin.html (Paramètres)'
