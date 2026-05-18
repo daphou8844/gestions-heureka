@@ -908,10 +908,10 @@ function seedDemo() {
   }
   const punchs = [
     {id:'p1',empId:'e1',jobId:'j1',date:t,punchIn:'07:02',punchOut:'16:05',note:''},
-    {id:'p2',empId:'e2',jobId:'j1',date:t,punchIn:'07:15',punchOut:'',note:''},
-    {id:'p3',empId:'e3',jobId:'j2',date:t,punchIn:'07:30',punchOut:'',note:''},
+    {id:'p2',empId:'e2',jobId:'j1',date:t,punchIn:'07:15',punchOut:'16:10',note:''},
+    {id:'p3',empId:'e3',jobId:'j2',date:t,punchIn:'07:30',punchOut:'16:30',note:''},
     {id:'p4',empId:'e4',jobId:'j2',date:t,punchIn:'08:00',punchOut:'17:00',note:''},
-    {id:'p5',empId:'e5',jobId:'j1',date:t,punchIn:'07:00',punchOut:'',note:''},
+    {id:'p5',empId:'e5',jobId:'j1',date:t,punchIn:'07:00',punchOut:'15:45',note:''},
     {id:'p6',empId:'e1',jobId:'j2',date:dateOffset(-1),punchIn:'07:00',punchOut:'16:00',note:''},
     {id:'p7',empId:'e2',jobId:'j2',date:dateOffset(-1),punchIn:'07:10',punchOut:'16:30',note:''},
     {id:'p8',empId:'e6',jobId:'j1',date:dateOffset(-1),punchIn:'08:00',punchOut:'17:00',note:''},
@@ -1117,10 +1117,11 @@ function renderDashboardAlerts() {
       actionLabel:'Corriger', action:`editPunch('${p.id}')`});
   });
 
-  // 2. Absent sans punch : horaire assigné aujourd'hui mais aucun punch
+  // 2. Absent sans punch : horaire assigné aujourd'hui, heure de début passée, aucun punch
+  const nowHHMM=(()=>{const n=new Date();return n.toLocaleTimeString('fr-CA',{timeZone:'America/Toronto',hour:'2-digit',minute:'2-digit',hour12:false});})();
   const todayPunchedIds=new Set(punchs.filter(p=>p.date===t).map(p=>p.empId));
   const seenAbsent=new Set();
-  shifts.filter(s=>s.date===t).forEach(s=>{
+  shifts.filter(s=>s.date===t && s.start && s.start<=nowHHMM).forEach(s=>{
     if(!todayPunchedIds.has(s.empId) && !seenAbsent.has(s.empId)){
       seenAbsent.add(s.empId);
       const e=getEmp(s.empId), j=getJob(s.jobId);
@@ -2104,6 +2105,19 @@ document.querySelectorAll('.overlay').forEach(o=>{
 //  INIT
 // =====================================================
 seedDemo();
+// Migration: fermer les punches de démo laissés ouverts (punchOut vide, date passée)
+(function migrateDemoPunchs(){
+  const t=today();
+  const DEMO_IDS={'p2':'16:10','p3':'16:30','p5':'15:45'};
+  const punchs=DB.get('punchs');
+  let changed=false;
+  punchs.forEach(p=>{
+    if(DEMO_IDS[p.id] && (!p.punchOut||p.punchOut==='') && p.date<t){
+      p.punchOut=DEMO_IDS[p.id]; changed=true;
+    }
+  });
+  if(changed) DB.set('punchs',punchs);
+})();
 initFixedLocations();
 renderDashboard();
 document.getElementById('topbar-btn').style.display='none';
