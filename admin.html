@@ -554,7 +554,10 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
     <div id="panel-paie" class="panel">
       <div class="sec-hd">
         <div><div class="sec-title">Paie</div><div class="sec-sub">Calcul de la masse salariale</div></div>
-        <button class="btn btn-gold" onclick="exportPayroll()">⬇ Exporter CSV</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-outline" onclick="exportPayrollPDF()">🖨 Exporter PDF</button>
+          <button class="btn btn-gold" onclick="exportPayroll()">⬇ Exporter CSV</button>
+        </div>
       </div>
       <div class="toolbar">
         <div class="fg" style="margin:0">
@@ -1339,7 +1342,7 @@ function renderPlanningWeek() {
       html+=`<div class="pc" onclick="openShiftCell('${e.id}','${iso}')">`;
       dayShifts.forEach(s=>{
         const jName=getShiftJobName_(s.jobId);
-        html+=`<div class="shift" style="position:relative;padding-right:16px" title="Cliquer pour modifier" onclick="event.stopPropagation();openShiftEdit('${s.id}')">${s.start}-${s.end}<br>${jName.slice(0,12)}<span style="position:absolute;top:1px;right:3px;font-size:10px;line-height:1;cursor:pointer;color:rgba(212,175,55,.7)" title="Supprimer" onclick="event.stopPropagation();quickDeleteShift('${s.id}')">✕</span></div>`;
+        html+=`<div class="shift" style="position:relative;padding-right:16px" title="${jName} · ${s.start}–${s.end}" onclick="event.stopPropagation();openShiftEdit('${s.id}')"><div style="font-size:9px;font-weight:900;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${jName}</div><div style="font-size:9px;opacity:.8">${s.start}–${s.end}</div><span style="position:absolute;top:1px;right:3px;font-size:10px;line-height:1;cursor:pointer;color:rgba(212,175,55,.7)" title="Supprimer" onclick="event.stopPropagation();quickDeleteShift('${s.id}')">✕</span></div>`;
       });
       html+=`</div>`;
     });
@@ -1851,6 +1854,100 @@ function exportPayroll() {
   a.download=`paie_${from}_${to}.csv`;
   a.click();
   toast('Export CSV téléchargé ✓','ok');
+}
+
+function exportPayrollPDF() {
+  const from=document.getElementById('paie-from')?.value||'';
+  const to=document.getElementById('paie-to')?.value||'';
+  const cfg=DB.cfg();
+  const otRate=cfg.otRate||1.5, otHours=cfg.otHours||40;
+  const emps=DB.get('employees').filter(e=>e.active==='1'||e.active===1);
+  const punchs=DB.get('punchs');
+  let grandTotal=0;
+  const rows=emps.map(e=>{
+    const eps=punchs.filter(p=>{
+      if(p.empId!==e.id||!p.punchOut) return false;
+      if(from&&p.date<from) return false;
+      if(to&&p.date>to) return false;
+      return true;
+    });
+    let totalHrs=0; eps.forEach(p=>totalHrs+=calcHours(p.punchIn,p.punchOut));
+    if(!totalHrs) return null;
+    const reg=Math.min(totalHrs,otHours),ot=Math.max(0,totalHrs-otHours),rate=parseFloat(e.rate)||0;
+    const total=reg*rate+ot*rate*otRate;
+    grandTotal+=total;
+    return {e,totalHrs,reg,ot,rate,total};
+  }).filter(Boolean);
+
+  const period=from&&to?`${fmt(from)} au ${fmt(to)}`:from?`À partir du ${fmt(from)}`:to?`Jusqu'au ${fmt(to)}`:'Toutes les périodes';
+  const genDate=new Date().toLocaleDateString('fr-CA',{timeZone:'America/Toronto',year:'numeric',month:'long',day:'numeric'});
+
+  const html=`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+<title>Rapport de paie — Gestions Heuréka</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;color:#111;background:#fff;padding:32px 40px;font-size:13px}
+  .header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #D4AF37;padding-bottom:18px;margin-bottom:24px}
+  .logo-block{display:flex;flex-direction:column}
+  .logo-name{font-size:22px;font-weight:900;color:#D4AF37;letter-spacing:1px}
+  .logo-sub{font-size:11px;color:#666;margin-top:2px}
+  .meta{text-align:right;font-size:11px;color:#555;line-height:1.8}
+  .meta strong{color:#111}
+  h2{font-size:15px;font-weight:800;color:#111;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;margin-bottom:24px}
+  thead tr{background:#1a1a1a;color:#D4AF37}
+  th{padding:9px 12px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+  td{padding:9px 12px;border-bottom:1px solid #eee;font-size:12px}
+  tr:nth-child(even) td{background:#fafafa}
+  .total-row td{font-weight:900;font-size:14px;color:#D4AF37;border-top:2px solid #D4AF37;border-bottom:none;background:#fff8e1}
+  .right{text-align:right}
+  .badge{display:inline-block;background:#f0f0f0;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;color:#444}
+  .ot{color:#e67e00;font-size:11px}
+  .footer{margin-top:32px;padding-top:16px;border-top:1px solid #ddd;font-size:10px;color:#999;text-align:center}
+  @media print{body{padding:16px 20px} .no-print{display:none}}
+</style></head><body>
+<div class="header">
+  <div class="logo-block">
+    <div class="logo-name">⬡ GESTIONS HEURÉKA</div>
+    <div class="logo-sub">Compagnie de construction · Québec</div>
+  </div>
+  <div class="meta">
+    <div><strong>Rapport de paie</strong></div>
+    <div>Période : <strong>${period}</strong></div>
+    <div>Généré le : ${genDate}</div>
+  </div>
+</div>
+<h2>Détail par employé</h2>
+<table>
+  <thead><tr>
+    <th>Employé</th><th>Rôle</th><th class="right">Heures</th>
+    <th class="right">Taux / h</th><th class="right">Régulier</th>
+    <th class="right">Supplémentaire</th><th class="right">Total brut</th>
+  </tr></thead>
+  <tbody>
+    ${rows.map(r=>`<tr>
+      <td><strong>${empFullName(r.e)}</strong></td>
+      <td><span class="badge">${r.e.role||'—'}</span></td>
+      <td class="right">${fmtHours(r.totalHrs)}</td>
+      <td class="right">${fmtMoney(r.rate)}/h</td>
+      <td class="right">${fmtMoney(r.reg*r.rate)}<br><span style="font-size:10px;color:#888">${fmtHours(r.reg)}</span></td>
+      <td class="right">${r.ot>0?`${fmtMoney(r.ot*r.rate*otRate)}<br><span class="ot">${fmtHours(r.ot)} @ ${otRate}x</span>`:'—'}</td>
+      <td class="right" style="font-weight:900;color:#D4AF37;font-size:14px">${fmtMoney(r.total)}</td>
+    </tr>`).join('')}
+    <tr class="total-row">
+      <td colspan="6"><strong>TOTAL MASSE SALARIALE BRUTE</strong></td>
+      <td class="right">${fmtMoney(grandTotal)}</td>
+    </tr>
+  </tbody>
+</table>
+<div class="footer">Gestions Heuréka · Rapport généré automatiquement · ${genDate}</div>
+<script>window.onload=()=>{ window.print(); }<\/script>
+</body></html>`;
+
+  const w=window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  toast('Rapport PDF ouvert ✓','ok');
 }
 
 // =====================================================
