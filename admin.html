@@ -1353,7 +1353,7 @@ function renderPlanningWeek() {
       html+=`<div class="pc" onclick="openShiftCell('${e.id}','${iso}')">`;
       dayShifts.forEach(s=>{
         const jName=getShiftJobName_(s.jobId);
-        html+=`<div class="shift" title="Cliquer pour modifier/supprimer" onclick="event.stopPropagation();openShiftEdit('${s.id}')">${s.start}-${s.end}<br>${jName.slice(0,12)}</div>`;
+        html+=`<div class="shift" style="position:relative;padding-right:16px" title="Cliquer pour modifier" onclick="event.stopPropagation();openShiftEdit('${s.id}')">${s.start}-${s.end}<br>${jName.slice(0,12)}<span style="position:absolute;top:1px;right:3px;font-size:10px;line-height:1;cursor:pointer;color:rgba(212,175,55,.7)" title="Supprimer" onclick="event.stopPropagation();quickDeleteShift('${s.id}')">✕</span></div>`;
       });
       html+=`</div>`;
     });
@@ -1386,7 +1386,7 @@ function renderPlanningMonth() {
       if(seen.has(s.empId)) return; seen.add(s.empId);
       const e=getEmp(s.empId), jName=getShiftJobName_(s.jobId);
       const dayShiftForEmp=dayShifts.find(x=>x.empId===s.empId);
-      html+=`<div class="pm-shift" title="Cliquer pour supprimer" onclick="event.stopPropagation();openShiftEdit('${dayShiftForEmp?dayShiftForEmp.id:''}')">${e.fname}: ${jName.slice(0,10)}</div>`;
+      html+=`<div class="pm-shift" style="position:relative;padding-right:14px" onclick="event.stopPropagation();openShiftEdit('${dayShiftForEmp?dayShiftForEmp.id:''}')">${e.fname}: ${jName.slice(0,10)}<span style="position:absolute;top:1px;right:3px;font-size:9px;cursor:pointer;color:rgba(212,175,55,.7)" title="Supprimer" onclick="event.stopPropagation();quickDeleteShift('${dayShiftForEmp?dayShiftForEmp.id:''}')">✕</span></div>`;
     });
     html+=`</div>`;
   }
@@ -1429,6 +1429,12 @@ function deleteShift() {
   const id=document.getElementById('shift-edit-id').value;
   DB.set('shifts',DB.get('shifts').filter(s=>s.id!==id));
   closeModal('modal-shift');
+  renderPlanning();
+  toast('Quart supprimé ✓','ok');
+}
+function quickDeleteShift(id) {
+  if(!id||!confirm('Supprimer ce quart ?')) return;
+  DB.set('shifts',DB.get('shifts').filter(s=>s.id!==id));
   renderPlanning();
   toast('Quart supprimé ✓','ok');
 }
