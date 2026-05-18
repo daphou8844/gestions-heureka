@@ -1993,7 +1993,14 @@ async function syncSheets(section) {
     const data=await res.json();
     if(data.status==='ok'){
       if(data.punchs) DB.set('punchs',data.punchs);
-      // GET explicite pour lire les chantiers ajoutés par le pipeline dans le Sheet
+      // Employés retournés par le POST sync — importe ceux absents du localStorage
+      if(data.employees&&data.employees.length){
+        const local=DB.get('employees');
+        const localIds=new Set(local.map(e=>e.id));
+        const newEmps=data.employees.filter(e=>e.id&&!localIds.has(e.id));
+        if(newEmps.length>0){ DB.set('employees',[...local,...newEmps]); renderEquipe(); }
+      }
+      // GET chantiers — lit ce que le pipeline a ajouté dans le Sheet
       try {
         const jr=await fetch(cfg.scriptUrl+'?action=getJobs',{redirect:'follow'});
         const jd=await jr.json();
@@ -2008,6 +2015,21 @@ async function syncSheets(section) {
           }
         }
       } catch(e){ /* silent */ }
+      // GET employés — importe les employés ajoutés directement dans le Sheet
+      try {
+        const er=await fetch(cfg.scriptUrl+'?action=getEmployees',{redirect:'follow'});
+        const ed=await er.json();
+        if(ed.status==='ok'&&ed.employees&&ed.employees.length){
+          const local=DB.get('employees');
+          const localIds=new Set(local.map(e=>e.id));
+          const newEmps=ed.employees.filter(e=>e.id&&!localIds.has(e.id));
+          if(newEmps.length>0){
+            DB.set('employees',[...local,...newEmps]);
+            renderEquipe();
+            toast(`📥 ${newEmps.length} nouvel${newEmps.length>1?'s':''} employé${newEmps.length>1?'s':''} importé${newEmps.length>1?'s':''} depuis Sheets ✓`,'ok');
+          }
+        }
+      } catch(e){ /* silent */ }
       localStorage.setItem('hk_lastsync',new Date().toISOString());
       const el=document.getElementById('job-sync-time');
       if(el) el.textContent=new Date().toLocaleTimeString('fr-CA',{timeZone:'America/Toronto'});
@@ -2019,20 +2041,37 @@ async function syncSheets(section) {
 async function autoSyncJobs(){
   const cfg=DB.cfg();
   if(!cfg.scriptUrl) return;
+  // Chantiers
   try {
     const res=await fetch(cfg.scriptUrl+'?action=getJobs',{redirect:'follow'});
     const data=await res.json();
-    if(data.status!=='ok'||!data.jobs||!data.jobs.length) return;
-    const local=DB.get('jobs');
-    const localIds=new Set(local.map(j=>j.id));
-    const newJobs=data.jobs.filter(j=>j.id && !localIds.has(j.id));
-    if(newJobs.length>0){
-      DB.set('jobs',[...local,...newJobs]);
-      renderJobs();
-      updateSyncTime_();
-      toast(`📥 ${newJobs.length} nouveau${newJobs.length>1?'x':''} chantier${newJobs.length>1?'s':''} reçu${newJobs.length>1?'s':''} depuis le Pipeline !`,'ok');
+    if(data.status==='ok'&&data.jobs&&data.jobs.length){
+      const local=DB.get('jobs');
+      const localIds=new Set(local.map(j=>j.id));
+      const newJobs=data.jobs.filter(j=>j.id&&!localIds.has(j.id));
+      if(newJobs.length>0){
+        DB.set('jobs',[...local,...newJobs]);
+        renderJobs();
+        updateSyncTime_();
+        toast(`📥 ${newJobs.length} nouveau${newJobs.length>1?'x':''} chantier${newJobs.length>1?'s':''} reçu${newJobs.length>1?'s':''} depuis le Pipeline !`,'ok');
+      }
     }
-  } catch(e){ /* silent — ne pas alerter si le réseau est absent */ }
+  } catch(e){ /* silent */ }
+  // Employés
+  try {
+    const res=await fetch(cfg.scriptUrl+'?action=getEmployees',{redirect:'follow'});
+    const data=await res.json();
+    if(data.status==='ok'&&data.employees&&data.employees.length){
+      const local=DB.get('employees');
+      const localIds=new Set(local.map(e=>e.id));
+      const newEmps=data.employees.filter(e=>e.id&&!localIds.has(e.id));
+      if(newEmps.length>0){
+        DB.set('employees',[...local,...newEmps]);
+        renderEquipe();
+        toast(`📥 ${newEmps.length} nouvel${newEmps.length>1?'s':''} employé${newEmps.length>1?'s':''} reçu${newEmps.length>1?'s':''} depuis Sheets !`,'ok');
+      }
+    }
+  } catch(e){ /* silent */ }
 }
 
 function updateSyncTime_(){

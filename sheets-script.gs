@@ -209,23 +209,25 @@ function syncAll(data) {
     bulkUpsert(punchSheet, data.punchs, punchToRow, 0);
   }
 
-  // Relire tous les punchs ET jobs pour retourner à admin
-  // (les jobs peuvent inclure de nouveaux chantiers ajoutés par le pipeline)
-  const allPunchs = readSheet(SHEETS.PUNCHS, punchFromRow);
-  const allJobs   = readSheet(SHEETS.JOBS,   jobFromRow);
+  // Relire punchs, jobs ET employés pour retourner à admin
+  // (inclut les données ajoutées directement dans le Sheet ou via le pipeline)
+  const allPunchs    = readSheet(SHEETS.PUNCHS, punchFromRow);
+  const allJobs      = readSheet(SHEETS.JOBS,   jobFromRow);
+  const allEmployees = readSheet(SHEETS.EQUIPE, employeeFromRow);
 
   return {
     status:    'ok',
     message:   'Sync complète',
     synced_at: new Date().toISOString(),
     counts: {
-      employees: (data.employees || []).length,
-      jobs:      (data.jobs || []).length,
+      employees: allEmployees.length,
+      jobs:      allJobs.length,
       punchs:    allPunchs.length,
       horaires:  (data.horaires || []).length,
     },
-    punchs: allPunchs,  // admin met à jour son localStorage avec ces données
-    jobs:   allJobs,    // admin importe les nouveaux chantiers du pipeline
+    punchs:    allPunchs,     // admin met à jour son localStorage
+    jobs:      allJobs,       // admin importe les nouveaux chantiers du pipeline
+    employees: allEmployees,  // admin importe les employés ajoutés dans le Sheet
   };
 }
 
