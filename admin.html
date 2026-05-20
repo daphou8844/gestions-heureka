@@ -24,7 +24,13 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);min-he
 ::-webkit-scrollbar-thumb{background:var(--gold3);border-radius:3px}
 
 /* SIDEBAR */
-.sidebar{width:var(--side);background:var(--bg2);border-right:1px solid var(--bdr);display:flex;flex-direction:column;position:fixed;left:0;top:0;height:100vh;z-index:100}
+.sidebar{width:var(--side);background:var(--bg2);border-right:1px solid var(--bdr);display:flex;flex-direction:column;position:fixed;left:0;top:0;height:100vh;z-index:100;transition:width .25s ease;overflow:hidden}
+.sidebar.collapsed{width:0}
+.sidebar.collapsed+.main{margin-left:0}
+.sb-toggle{background:none;border:none;color:var(--txt2);font-size:19px;cursor:pointer;padding:4px 10px;border-radius:var(--rad2);transition:var(--tr);flex-shrink:0;line-height:1}
+.sb-toggle:hover{background:var(--bg4);color:var(--gold)}
+.auto-save-pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:#4ade80;background:rgba(74,222,128,.07);border:1px solid rgba(74,222,128,.18);border-radius:20px;padding:3px 10px;flex-shrink:0}
+.auto-save-dot{width:6px;height:6px;background:#4ade80;border-radius:50%;flex-shrink:0}
 .sb-logo{padding:22px 18px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:12px}
 .sb-logomark{width:42px;height:42px;border-radius:10px;object-fit:contain;flex-shrink:0;display:block}
 .gallery-photo{border-radius:var(--rad2);overflow:hidden;background:var(--bg3);border:1px solid var(--bdr);cursor:pointer;transition:var(--tr)}
@@ -51,7 +57,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);min-he
 .u-role{font-size:10px;color:var(--txt2)}
 
 /* MAIN */
-.main{margin-left:var(--side);flex:1;display:flex;flex-direction:column;min-height:100vh}
+.main{margin-left:var(--side);flex:1;display:flex;flex-direction:column;min-height:100vh;transition:margin-left .25s ease}
 .topbar{height:62px;background:var(--bg2);border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;padding:0 26px;position:sticky;top:0;z-index:50}
 .tb-left h1{font-size:17px;font-weight:800}
 .tb-left p{font-size:11px;color:var(--txt2);margin-top:1px}
@@ -351,13 +357,14 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
 <!-- MAIN -->
 <div class="main">
   <header class="topbar">
+    <button class="sb-toggle" id="sb-toggle" onclick="toggleSidebar()" title="Afficher/masquer le menu">☰</button>
     <div class="tb-left">
       <h1 id="hdr-title">Dashboard</h1>
       <p id="hdr-sub">Vue d'ensemble de l'entreprise</p>
     </div>
     <div class="tb-right">
       <span class="live" id="live-indicator">Live</span>
-      <button class="btn btn-outline btn-sm" onclick="syncSheets()">⟳ Sync Sheets</button>
+      <span class="auto-save-pill"><span class="auto-save-dot"></span>Auto-enregistré</span>
       <button class="btn btn-gold btn-sm" id="topbar-btn" onclick="topbarAction()">+ Nouveau</button>
     </div>
   </header>
@@ -393,8 +400,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
         <button class="btn btn-gold" onclick="openModal('modal-job')">+ Nouveau chantier</button>
       </div>
       <div class="sync-bar">
-        <span>🔗 Google Sheets · Dernière sync: <span id="job-sync-time">—</span></span>
-        <button class="btn btn-outline btn-sm" onclick="syncSheets('jobs')">↑ Sync</button>
+        <span>🔗 Google Sheets · Sync automatique toutes les 5s</span>
       </div>
       <div class="toolbar">
         <div class="srch"><span class="srch-ico">🔍</span><input type="text" placeholder="Rechercher un chantier..." oninput="filterJobs(this.value)"></div>
@@ -561,8 +567,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
         <button class="btn btn-gold" onclick="openModal('modal-punch')">+ Punch manuel</button>
       </div>
       <div class="sync-bar">
-        <span>🔗 Google Sheets · Sync bidirectionnel avec l'app Punch</span>
-        <button class="btn btn-outline btn-sm" onclick="syncSheets('punchs')">↑↓ Sync</button>
+        <span>🔗 Google Sheets · Sync automatique toutes les 5s</span>
       </div>
       <div class="toolbar">
         <div class="fg" style="margin:0;flex:1;min-width:140px">
@@ -2344,6 +2349,13 @@ async function autoSyncPunchs(){
     }
   }catch(e){ /* silent — offline OK */ }
 }
+function toggleSidebar(){
+  const sb=document.querySelector('.sidebar');
+  const col=sb.classList.toggle('collapsed');
+  localStorage.setItem('hk_sb_col',col?'1':'');
+}
+if(localStorage.getItem('hk_sb_col')) document.querySelector('.sidebar').classList.add('collapsed');
+
 const _SI = HEUREKA_CONFIG.SYNC_INTERVAL_MS;
 setInterval(autoSyncPunchs, _SI);
 setTimeout(autoSyncPunchs, 3000);
