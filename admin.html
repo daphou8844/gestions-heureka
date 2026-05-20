@@ -766,6 +766,18 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
   </div>
 </div>
 
+<!-- Modal Employés punchés -->
+<div class="overlay" id="modal-punched">
+  <div class="modal" style="max-width:400px">
+    <div class="m-hd">
+      <span class="m-title">Employés sur chantier</span>
+      <button class="m-close" onclick="closeModal('modal-punched')">✕</button>
+    </div>
+    <div class="m-body" id="punched-list-body"></div>
+    <div class="m-foot"><button class="btn btn-outline" onclick="closeModal('modal-punched')">Fermer</button></div>
+  </div>
+</div>
+
 <!-- Modal Quart Planning -->
 <div class="overlay" id="modal-shift">
   <div class="modal">
@@ -1121,7 +1133,7 @@ function renderDashboard() {
 
   document.getElementById('dash-stats').innerHTML = `
     <div class="stat"><div class="stat-ico ico-gold">🏗</div><div><div class="stat-val">${activeJobs.length}</div><div class="stat-lbl">Chantiers actifs</div></div></div>
-    <div class="stat"><div class="stat-ico ico-green">👷</div><div><div class="stat-val">${emps.length}</div><div class="stat-lbl">Employés actifs</div></div></div>
+    <div class="stat" style="cursor:pointer" onclick="showPunchedList()" title="Voir liste"><div class="stat-ico ico-green">👷</div><div><div class="stat-val">${openPunchs.length}</div><div class="stat-lbl">Employés punchés</div></div></div>
     <div class="stat"><div class="stat-ico ico-blue">⏱</div><div><div class="stat-val">${weekHrs.toFixed(0)}h</div><div class="stat-lbl">Heures cette semaine</div></div></div>
     <div class="stat"><div class="stat-ico ico-orange">💰</div><div><div class="stat-val">${fmtMoney(weekPay)}</div><div class="stat-lbl">Paie estimée sem.</div></div></div>
   `;
@@ -1205,6 +1217,31 @@ function renderDashboardAlerts() {
         </div>`).join('')}
     </div>
   </div>`;
+}
+
+function showPunchedList() {
+  const t=today();
+  const openP=DB.get('punchs').filter(p=>p.date===t&&p.punchIn&&!p.punchOut);
+  const body=document.getElementById('punched-list-body');
+  if(!openP.length){
+    body.innerHTML='<div class="empty"><div class="empty-ico">👷</div><div>Aucun employé punchés aujourd\'hui</div></div>';
+  } else {
+    body.innerHTML=openP.map(p=>{
+      const e=getEmp(p.empId), j=getJob(p.jobId);
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bdr)">
+        ${empAvatar(e,34)}
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700">${empFullName(e)}</div>
+          <div style="font-size:11px;color:var(--txt2)">${j.name}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:12px;font-weight:700;color:var(--ok)">En cours</div>
+          <div style="font-size:10px;color:var(--txt2)">Depuis ${p.punchIn}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  openModal('modal-punched');
 }
 
 function openPunchFor(empId, jobId) {
@@ -1475,17 +1512,25 @@ function openShiftEdit(id) {
   openModal('modal-shift');
 }
 
+function _deletePlanningFromSheet(planningId) {
+  if(!planningId) return;
+  fetch(HEUREKA_CONFIG.APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'deleteRow',sheet:'Planning',id:planningId})}).catch(()=>{});
+}
 function deleteShift() {
   if(!confirm('Supprimer ce quart du planning ?')) return;
   const id=document.getElementById('shift-edit-id').value;
+  const s=DB.get('shifts').find(x=>x.id===id);
   DB.set('shifts',DB.get('shifts').filter(s=>s.id!==id));
+  if(s&&s.planningId) _deletePlanningFromSheet(s.planningId);
   closeModal('modal-shift');
   renderPlanning();
   toast('Quart supprimé ✓','ok');
 }
 function quickDeleteShift(id) {
   if(!id||!confirm('Supprimer ce quart ?')) return;
-  DB.set('shifts',DB.get('shifts').filter(s=>s.id!==id));
+  const s=DB.get('shifts').find(x=>x.id===id);
+  DB.set('shifts',DB.get('shifts').filter(x=>x.id!==id));
+  if(s&&s.planningId) _deletePlanningFromSheet(s.planningId);
   renderPlanning();
   toast('Quart supprimé ✓','ok');
 }
@@ -1581,6 +1626,27 @@ function toggleHorEmp(card, empId) {
   if(cb) cb.checked=card.classList.contains('hec-sel');
   onHorEmpChange();
 }
+async function syncChantiersToHorForm() {
+  try {
+    const url=HEUREKA_CONFIG.APPS_SCRIPT_URL+'?action=getData&sheet=Chantiers';
+    const res=await fetch(url,{redirect:'follow'});
+    const data=await res.json();
+    if(Array.isArray(data)&&data.length){
+      const sheetJobs=data
+        .filter(r=>r.Statut&&r.Statut.toLowerCase()==='actif')
+        .map(r=>({id:r.ID_Chantier,name:r.Nom_Chantier}));
+      const localJobs=DB.get('jobs').filter(j=>j.status==='actif'&&!j.isFixedLocation);
+      const localIds=new Set(localJobs.map(j=>j.id));
+      const merged=[...localJobs,...sheetJobs.filter(j=>!localIds.has(j.id))];
+      const sel=document.getElementById('hor-job');
+      if(sel){
+        const cur=sel.value;
+        populateSelect('hor-job',merged,'id',j=>j.name,'Sélectionner un chantier...');
+        if(cur) sel.value=cur;
+      }
+    }
+  } catch(e){ /* silent */ }
+}
 function renderHoraires() {
   document.getElementById('hor-date').value=today();
   document.querySelector('input[name="hor-repeat"][value="once"]').checked=true;
@@ -1600,6 +1666,7 @@ function renderHoraires() {
     :'<div class="hor-empty" style="grid-column:1/-1">Aucun employé Équipe Chantier</div>';
   onHorEmpChange();
   renderHorairesList();
+  syncChantiersToHorForm();
 }
 function onHorEmpChange() {
   const checked=[...document.querySelectorAll('input[name="hor-emp"]:checked')].map(c=>c.value);
@@ -1672,15 +1739,18 @@ function sendHoraire() {
   }
   const hs=DB.get('horaires'),shifts=DB.get('shifts');
   let totalH=0;
+  const newShifts=[];
   dates.forEach(d=>{
     if(bureauIds.length){
-      hs.push({id:uid(),jobId:bureauJobId,date:d,start,end,empIds:bureauIds,note,sent:true,sentAt:new Date().toISOString()});
-      bureauIds.forEach(empId=>shifts.push({id:uid(),empId,jobId:bureauJobId,date:d,start,end}));
+      const hId=uid();
+      hs.push({id:hId,jobId:bureauJobId,date:d,start,end,empIds:bureauIds,note,sent:true,sentAt:new Date().toISOString()});
+      bureauIds.forEach(empId=>{const s={id:uid(),empId,jobId:bureauJobId,date:d,start,end,horaireId:hId};shifts.push(s);newShifts.push(s);});
       totalH++;
     }
     if(chantierIds.length){
-      hs.push({id:uid(),jobId:chantierJobId,date:d,start,end,empIds:chantierIds,note,sent:true,sentAt:new Date().toISOString()});
-      chantierIds.forEach(empId=>shifts.push({id:uid(),empId,jobId:chantierJobId,date:d,start,end}));
+      const hId=uid();
+      hs.push({id:hId,jobId:chantierJobId,date:d,start,end,empIds:chantierIds,note,sent:true,sentAt:new Date().toISOString()});
+      chantierIds.forEach(empId=>{const s={id:uid(),empId,jobId:chantierJobId,date:d,start,end,horaireId:hId};shifts.push(s);newShifts.push(s);});
       totalH++;
     }
   });
@@ -1688,6 +1758,21 @@ function sendHoraire() {
   renderHorairesList();
   toast(isRepeat?`${totalH} horaire${totalH>1?'s':''} créé${totalH>1?'s':''} (${allChecked.length} emp.) ✓`:`Horaire envoyé à ${allChecked.length} employé${allChecked.length>1?'s':''} ✓`,'ok');
   syncSheets('horaires');
+  // Sync each shift to Planning onglet in Sheet
+  newShifts.forEach(async s=>{
+    try {
+      const res=await fetch(HEUREKA_CONFIG.APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({
+        action:'addRow',sheet:'Planning',
+        data:{Horaire_ID:s.horaireId,Employé_ID:s.empId,Chantier_ID:s.jobId,Date:s.date,Heure_Début:s.start,Heure_Fin:s.end,Note:note}
+      })});
+      const d=await res.json();
+      if(d.status==='ok'&&d.id){
+        const all=DB.get('shifts');
+        const idx=all.findIndex(x=>x.id===s.id);
+        if(idx>=0){all[idx].planningId=d.id;DB.set('shifts',all);}
+      }
+    } catch(e){ /* silent */ }
+  });
 }
 function deleteHoraire(id) {
   DB.set('horaires',DB.get('horaires').filter(h=>h.id!==id));
@@ -2276,6 +2361,8 @@ document.getElementById('topbar-btn').style.display='none';
 setInterval(()=>{ if(currentPanel==='live') renderLive(); },30000);
 // Auto-sync jobs depuis Google Sheets toutes les 15 secondes
 setInterval(autoSyncJobs, 15000);
+// Auto-sync chantiers dans le formulaire Horaires toutes les 30 secondes
+setInterval(()=>{ if(currentPanel==='horaires') syncChantiersToHorForm(); },30000);
 // Update live badge every minute
 setInterval(()=>{
   const t=today();
