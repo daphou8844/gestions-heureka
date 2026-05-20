@@ -329,6 +329,30 @@ body{min-height:100%;background:var(--bg);color:var(--txt);font-family:'Inter',s
   </div>
 </div>
 
+<!-- RAPPORT FIN DE JOURNÉE -->
+<div class="sheet-overlay" id="rapport-sheet">
+  <div class="sheet" style="max-height:90vh;overflow-y:auto">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">📋 Rapport de fin de journée</div>
+    <div class="fg">
+      <label>Travaux effectués *</label>
+      <textarea class="notes-area" id="rpt-travaux" placeholder="Décrire les travaux accomplis aujourd'hui..." rows="3"></textarea>
+    </div>
+    <div class="fg">
+      <label>Problèmes rencontrés</label>
+      <textarea class="notes-area" id="rpt-problemes" placeholder="Optionnel — problèmes ou incidents..." rows="2"></textarea>
+    </div>
+    <div class="fg">
+      <label>Matériaux utilisés</label>
+      <textarea class="notes-area" id="rpt-materiaux" placeholder="Optionnel — matériaux ou équipements..." rows="2"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px">
+      <button class="btn btn-outline" style="flex:1;min-height:50px" onclick="closeRapport()">Annuler</button>
+      <button class="btn btn-out" style="flex:1;min-height:50px" onclick="submitRapport()">⏹ Punch Out</button>
+    </div>
+  </div>
+</div>
+
 <!-- SETTINGS SHEET -->
 <div class="sheet-overlay" id="settings-sheet">
   <div class="sheet">
@@ -750,9 +774,32 @@ function askPunchOut() {
   const elapsed = getElapsedSeconds();
   const hrs = Math.floor(elapsed/3600);
   const mins = Math.floor((elapsed%3600)/60);
-  document.getElementById('confirm-out-msg').textContent =
-    `Vous avez travaillé ${hrs}h${mins.toString().padStart(2,'0')} aujourd'hui. Confirmer?`;
-  document.getElementById('confirm-out').classList.add('open');
+  const name = (emp && emp.fname || '').toLowerCase();
+  const skipRapport = name.startsWith('daph') || name.startsWith('ana');
+  if(!skipRapport) {
+    document.getElementById('rpt-travaux').value = '';
+    document.getElementById('rpt-problemes').value = '';
+    document.getElementById('rpt-materiaux').value = '';
+    document.getElementById('rapport-sheet').classList.add('open');
+  } else {
+    document.getElementById('confirm-out-msg').textContent =
+      `Vous avez travaillé ${hrs}h${mins.toString().padStart(2,'0')} aujourd'hui. Confirmer?`;
+    document.getElementById('confirm-out').classList.add('open');
+  }
+}
+function closeRapport() {
+  document.getElementById('rapport-sheet').classList.remove('open');
+}
+function submitRapport() {
+  const travaux = document.getElementById('rpt-travaux').value.trim();
+  if(!travaux) { toast('Décrire les travaux effectués','err'); return; }
+  punch.rapport = {
+    travaux,
+    problemes: document.getElementById('rpt-problemes').value.trim(),
+    materiaux: document.getElementById('rpt-materiaux').value.trim()
+  };
+  closeRapport();
+  confirmPunchOut();
 }
 
 function closeConfirm() {
@@ -1013,6 +1060,32 @@ async function syncSheets() {
       })
     });
   } catch(e) { /* silent — offline OK */ }
+  // Write to new Punch onglet (with Rapport_Fin_Journée)
+  try {
+    const r = punch.rapport;
+    const rapportStr = r ?
+      'Travaux: '+r.travaux+
+      (r.problemes?' | Problèmes: '+r.problemes:'')+
+      (r.materiaux?' | Matériaux: '+r.materiaux:'') : '';
+    const netHrs = (getElapsedSeconds()/3600).toFixed(2);
+    await fetch(cfg.scriptUrl, {
+      method:'POST',
+      body: JSON.stringify({
+        action:'addRow', sheet:'Punch',
+        data:{
+          Employé_ID: punch.empId,
+          Chantier_ID: punch.jobId,
+          Date: punch.date,
+          Punch_In: punch.punchIn,
+          Punch_Out: punch.punchOut||'',
+          Heures: netHrs,
+          Statut: 'Complété',
+          Note: punch.notes||'',
+          Rapport_Fin_Journée: rapportStr
+        }
+      })
+    });
+  } catch(e) { /* silent */ }
 }
 
 async function syncLive() {
@@ -1048,9 +1121,12 @@ function toast(msg, type='info') {
   setTimeout(()=>{ div.style.opacity='0'; div.style.transition='opacity .3s'; setTimeout(()=>div.remove(),300); },2800);
 }
 
-// Close settings on outside click
+// Close sheets on outside click
 document.getElementById('settings-sheet').addEventListener('click',e=>{
   if(e.target===document.getElementById('settings-sheet')) closeSettings();
+});
+document.getElementById('rapport-sheet').addEventListener('click',e=>{
+  if(e.target===document.getElementById('rapport-sheet')) closeRapport();
 });
 
 // =====================================================
