@@ -255,8 +255,39 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
 @media(max-width:1100px){.g4{grid-template-columns:1fr 1fr}}
 @media(max-width:768px){.sidebar{transform:translateX(-100%)}.main{margin-left:0}.g2,.g3,.g4{grid-template-columns:1fr}}
 </style>
+<style>
+#lock-screen{position:fixed;inset:0;z-index:99999;background:#0a0a0a;display:flex;align-items:center;justify-content:center}
+#lock-screen.hidden{display:none!important}
+.lock-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 55%,rgba(212,175,55,.08) 0%,transparent 65%);pointer-events:none}
+.lock-card{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:24px;padding:44px 40px;background:#111;border:1px solid rgba(212,175,55,.2);border-radius:18px;box-shadow:0 24px 80px rgba(0,0,0,.7);width:360px;max-width:92vw}
+.lock-logo-img{width:68px;height:68px;border-radius:14px;object-fit:contain}
+.lock-appname{font-size:20px;font-weight:800;color:#fff;letter-spacing:.2px;text-align:center;line-height:1.25}
+.lock-appname span{display:block;font-size:11px;font-weight:500;color:#666;letter-spacing:2px;text-transform:uppercase;margin-top:5px}
+.lock-field{width:100%;display:flex;flex-direction:column;gap:10px}
+.lock-input{width:100%;padding:13px 16px;background:#1a1a1a;border:1.5px solid rgba(212,175,55,.18);border-radius:10px;color:#fff;font-size:20px;letter-spacing:8px;text-align:center;font-family:inherit;outline:none;transition:border-color .2s,box-shadow .2s}
+.lock-input:focus{border-color:#D4AF37;box-shadow:0 0 0 3px rgba(212,175,55,.12)}
+.lock-input::placeholder{font-size:13px;letter-spacing:1px;color:#3a3a3a}
+.lock-btn{width:100%;padding:13px;background:linear-gradient(135deg,#D4AF37,#B8960C);color:#000;font-size:14px;font-weight:800;border:none;border-radius:10px;cursor:pointer;font-family:inherit;letter-spacing:.5px;transition:opacity .18s,transform .1s}
+.lock-btn:hover:not(:disabled){opacity:.88;transform:translateY(-1px)}
+.lock-btn:disabled{opacity:.45;cursor:not-allowed}
+.lock-error{color:#EF4444;font-size:12.5px;text-align:center;min-height:16px;font-weight:500}
+</style>
 </head>
 <body>
+
+<!-- ── ÉCRAN DE VERROUILLAGE ────────────────────────────── -->
+<div id="lock-screen">
+  <div class="lock-bg"></div>
+  <div class="lock-card">
+    <img src="logo.png" class="lock-logo-img" alt="Heuréka">
+    <div class="lock-appname">Gestions Heuréka<span>Espace admin</span></div>
+    <div class="lock-field">
+      <input type="password" id="lock-input" class="lock-input" placeholder="••••" maxlength="20" autocomplete="off">
+      <button class="lock-btn" id="lock-btn" onclick="lockSubmit()">Entrer</button>
+      <div class="lock-error" id="lock-error"></div>
+    </div>
+  </div>
+</div>
 
 <!-- SIDEBAR -->
 <nav class="sidebar">
@@ -857,6 +888,37 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
   </div>
 </div>
 
+<script src="config.js"></script>
+<script>
+// ── Verrouillage session ──────────────────────────────────
+(function(){
+  var SK='heureka_lock';
+  function valid(){
+    try{var s=JSON.parse(sessionStorage.getItem(SK)||'null');if(!s||!s.ts)return false;return(Date.now()-s.ts)<(s.h||8)*3600000;}catch(e){return false;}
+  }
+  function unlock(){var el=document.getElementById('lock-screen');if(el)el.classList.add('hidden');}
+  window.lockSubmit=function(){
+    var inp=document.getElementById('lock-input'),err=document.getElementById('lock-error'),btn=document.getElementById('lock-btn'),code=inp.value.trim();
+    if(!code){inp.focus();return;}
+    btn.disabled=true;err.textContent='';
+    fetch(HEUREKA_CONFIG.APPS_SCRIPT_URL+'?action=getConfig&key=CODE_ACCES')
+      .then(function(r){return r.json();})
+      .then(function(res){
+        if(res.status==='ok'&&code===String(res.value).trim()){
+          sessionStorage.setItem(SK,JSON.stringify({ts:Date.now(),h:HEUREKA_CONFIG.SESSION_DURATION_H||8}));
+          unlock();
+        }else{err.textContent='Code incorrect. Réessayez.';inp.value='';setTimeout(function(){inp.focus();},50);}
+      })
+      .catch(function(){err.textContent='Erreur de connexion. Vérifiez le réseau.';})
+      .then(function(){btn.disabled=false;});
+  };
+  document.addEventListener('DOMContentLoaded',function(){
+    var inp=document.getElementById('lock-input');
+    if(inp){inp.addEventListener('keydown',function(e){if(e.key==='Enter')window.lockSubmit();});setTimeout(function(){inp.focus();},80);}
+  });
+  if(valid())unlock();
+})();
+</script>
 <script>
 // =====================================================
 //  DATA LAYER

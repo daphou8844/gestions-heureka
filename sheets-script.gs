@@ -100,6 +100,15 @@ function doGet(e) {
       case 'getSoumissions':
         result = { status: 'ok', soumissions: getSoumissions(parseInt(e.parameter.limit) || 50) };
         break;
+      case 'getData':
+        result = { status: 'ok', data: getData(e.parameter.sheet) };
+        break;
+      case 'getConfig':
+        var cfgValGet = getConfigValue(e.parameter.key);
+        result = cfgValGet !== null
+          ? { status: 'ok', value: cfgValGet }
+          : { status: 'error', message: 'Clé introuvable: ' + e.parameter.key };
+        break;
       default:
         result = { status: 'error', message: 'Action inconnue: ' + action };
     }
@@ -176,6 +185,30 @@ function doPost(e) {
       // --- Soumission revêtement ---
       case 'saveSoumission':
         result = saveSoumission(data.data || data);
+        break;
+
+      // --- CRUD centralisé (Pipeline, Admin, Marketing) ---
+      case 'getData':
+        result = { status: 'ok', data: getData(data.sheet) };
+        break;
+      case 'addRow':
+        result = addRow(data.sheet, data.data || {});
+        break;
+      case 'updateRow':
+        result = updateRow(data.sheet, data.id, data.data || {});
+        break;
+      case 'deleteRow':
+        result = deleteRow(data.sheet, data.id);
+        break;
+      case 'getConfig':
+        var cfgVal = getConfigValue(data.key);
+        result = cfgVal !== null
+          ? { status: 'ok', value: cfgVal }
+          : { status: 'error', message: 'Clé introuvable: ' + data.key };
+        break;
+      case 'initAllSheets':
+        initAllSheets();
+        result = { status: 'ok', message: 'initAllSheets exécuté' };
         break;
 
       default:
@@ -1015,7 +1048,8 @@ function weeklyPayrollReport() {
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('🏗 Heureka')
-    .addItem('⚙ Initialiser les onglets', 'initSheets')
+    .addItem('⚙ Initialiser les onglets (anciens)', 'initSheets')
+    .addItem('🆕 Initialiser TOUS les onglets (unification)', 'initAllSheets')
     .addItem('⏰ Installer les triggers', 'installTriggers')
     .addSeparator()
     .addItem('🔄 Réinitialiser Vue Live', 'clearLive')
