@@ -2362,18 +2362,34 @@ seedDemo();
 initFixedLocations();
 renderDashboard();
 document.getElementById('topbar-btn').style.display='none';
-// Auto-refresh live view every 30 seconds
-setInterval(()=>{ if(currentPanel==='live') renderLive(); },30000);
-// Auto-sync jobs depuis Google Sheets toutes les 15 secondes
-setInterval(autoSyncJobs, 15000);
+// ── Sync temps réel punchs depuis le Sheet (30 s) ────────
+async function autoSyncPunchs(){
+  try{
+    const url=HEUREKA_CONFIG.APPS_SCRIPT_URL+'?action=getPunchs';
+    const res=await fetch(url,{redirect:'follow'});
+    const data=await res.json();
+    if(data.status==='ok'&&Array.isArray(data.punchs)&&data.punchs.length){
+      // Écraser complètement les punchs locaux avec ceux du Sheet
+      DB.set('punchs',data.punchs);
+      // Rafraîchir les vues actives
+      if(currentPanel==='dashboard') renderDashboard();
+      if(currentPanel==='live')      renderLive();
+      if(currentPanel==='punchs')    renderPunchsTable();
+      // Badge live
+      const t=today();
+      const n=data.punchs.filter(p=>p.date===t&&!p.punchOut).length;
+      document.getElementById('live-badge').textContent=n;
+    }
+  }catch(e){ /* silent — offline OK */ }
+}
+// Auto-sync punchs depuis Sheet toutes les 30 secondes
+setInterval(autoSyncPunchs, 30000);
+// Sync immédiat au chargement (après 3 s)
+setTimeout(autoSyncPunchs, 3000);
+// Auto-sync jobs depuis Google Sheets toutes les 30 secondes
+setInterval(autoSyncJobs, 30000);
 // Auto-sync chantiers dans le formulaire Horaires toutes les 30 secondes
 setInterval(()=>{ if(currentPanel==='horaires') syncChantiersToHorForm(); },30000);
-// Update live badge every minute
-setInterval(()=>{
-  const t=today();
-  const n=DB.get('punchs').filter(p=>p.date===t&&!p.punchOut).length;
-  document.getElementById('live-badge').textContent=n;
-},60000);
 </script>
 </body>
 </html>
