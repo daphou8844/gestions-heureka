@@ -13,7 +13,7 @@
   --txt: #ffffff; --txt2: #999999; --txt3: #666666;
   --bdr: rgba(212,175,55,0.15); --bdr2: rgba(212,175,55,0.4);
   --ok: #4CAF50; --err: #F44336; --warn: #FF9800; --info: #2196F3;
-  --side: 258px; --rad: 12px; --rad2: 8px;
+  --side: 240px; --rad: 12px; --rad2: 8px;
   --sh: 0 4px 24px rgba(0,0,0,.45);
   --tr: all .22s cubic-bezier(.4,0,.2,1);
 }
@@ -24,15 +24,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);min-he
 ::-webkit-scrollbar-thumb{background:var(--gold3);border-radius:3px}
 
 /* SIDEBAR */
-.sidebar{width:var(--side);background:var(--bg2);border-right:1px solid var(--bdr);display:flex;flex-direction:column;position:fixed;left:0;top:0;height:100vh;z-index:100;transition:width .25s ease;overflow:hidden}
-.sidebar.collapsed{width:0}
+.sidebar{width:var(--side);background:var(--bg2);border-right:1px solid var(--bdr);display:flex;flex-direction:column;position:fixed;left:0;top:0;height:100vh;z-index:100;transition:width .25s ease;overflow:hidden;box-shadow:4px 0 24px rgba(0,0,0,.35)}
+.sidebar.collapsed{width:0;box-shadow:none}
 .sidebar.collapsed+.main{margin-left:0}
 .sb-toggle{background:none;border:none;color:var(--txt2);font-size:19px;cursor:pointer;padding:4px 10px;border-radius:var(--rad2);transition:var(--tr);flex-shrink:0;line-height:1}
 .sb-toggle:hover{background:var(--bg4);color:var(--gold)}
 .auto-save-pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:#4ade80;background:rgba(74,222,128,.07);border:1px solid rgba(74,222,128,.18);border-radius:20px;padding:3px 10px;flex-shrink:0}
 .auto-save-dot{width:6px;height:6px;background:#4ade80;border-radius:50%;flex-shrink:0}
-.sb-logo{padding:22px 18px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:12px}
-.sb-logomark{width:42px;height:42px;border-radius:10px;object-fit:contain;flex-shrink:0;display:block}
+.sb-logo{padding:20px 16px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:12px}
+.sb-logomark{width:38px;height:38px;border-radius:9px;object-fit:contain;flex-shrink:0;display:block}
 .gallery-photo{border-radius:var(--rad2);overflow:hidden;background:var(--bg3);border:1px solid var(--bdr);cursor:pointer;transition:var(--tr)}
 .gallery-photo:hover{border-color:var(--gold)}
 .gallery-photo img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
@@ -41,15 +41,20 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);min-he
 .sb-logotxt{display:flex;flex-direction:column}
 .sb-brand{font-size:13px;font-weight:800;color:var(--gold);letter-spacing:.3px}
 .sb-sub{font-size:10px;color:var(--txt2);text-transform:uppercase;letter-spacing:1.5px}
-.sb-nav{flex:1;padding:14px 10px;overflow-y:auto}
-.sb-section{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--txt3);padding:10px 8px 5px;font-weight:700}
-.nav-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:var(--rad2);cursor:pointer;transition:var(--tr);color:var(--txt2);font-size:13px;font-weight:500;margin-bottom:2px;position:relative;border:1px solid transparent}
-.nav-item:hover{background:var(--bg4);color:var(--txt)}
+.sb-nav{flex:1;padding:12px 8px;overflow-y:auto}
+.sb-section{font-size:9.5px;text-transform:uppercase;letter-spacing:1.5px;color:var(--txt3);padding:12px 10px 5px;font-weight:700}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--rad2);cursor:pointer;transition:var(--tr);color:var(--txt2);font-size:13px;font-weight:500;margin-bottom:2px;position:relative;border:1px solid transparent}
+.nav-item:hover{background:rgba(212,175,55,.07);color:var(--txt);border-color:rgba(212,175,55,.12)}
 .nav-item.active{background:var(--glow);color:var(--gold);border-color:var(--bdr)}
-.nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:55%;background:var(--gold);border-radius:0 3px 3px 0}
-.nav-ico{width:18px;text-align:center;font-size:15px;flex-shrink:0}
-.nav-badge{margin-left:auto;background:var(--gold);color:#000;font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px}
-.sb-footer{padding:14px 10px;border-top:1px solid var(--bdr)}
+.nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:58%;background:var(--gold);border-radius:0 3px 3px 0}
+.nav-ico{width:28px;height:28px;border-radius:7px;background:rgba(255,255,255,.05);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px;transition:var(--tr)}
+.nav-item:hover .nav-ico{background:rgba(212,175,55,.12)}
+.nav-item.active .nav-ico{background:rgba(212,175,55,.18)}
+.nav-badge{margin-left:auto;background:var(--gold);color:#000;font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:20px;min-width:18px;text-align:center}
+.sb-footer{padding:12px 8px;border-top:1px solid var(--bdr)}
+.sb-app-links{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.sb-app-link{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:rgba(212,175,55,.07);border:1px solid rgba(212,175,55,.18);border-radius:7px;padding:6px 4px;font-size:11px;font-weight:700;color:var(--gold);cursor:pointer;text-decoration:none;transition:var(--tr)}
+.sb-app-link:hover{background:rgba(212,175,55,.15);border-color:var(--gold)}
 .sb-user{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--rad2);cursor:pointer;transition:var(--tr)}
 .sb-user:hover{background:var(--bg4)}
 .u-av{width:34px;height:34px;background:linear-gradient(135deg,var(--gold),var(--gold3));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#000;flex-shrink:0}
@@ -58,7 +63,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);min-he
 
 /* MAIN */
 .main{margin-left:var(--side);flex:1;display:flex;flex-direction:column;min-height:100vh;transition:margin-left .25s ease}
-.topbar{height:62px;background:var(--bg2);border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;padding:0 26px;position:sticky;top:0;z-index:50}
+.topbar{height:64px;background:var(--bg2);border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:50;gap:12px}
 .tb-left h1{font-size:17px;font-weight:800}
 .tb-left p{font-size:11px;color:var(--txt2);margin-top:1px}
 .tb-right{display:flex;align-items:center;gap:10px}
@@ -339,10 +344,10 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
     </div>
   </div>
   <div class="sb-footer">
-    <div style="display:flex;gap:6px;padding:8px 0 10px;flex-wrap:wrap">
-      <a href="javascript:void(0)" onclick="window.open(HEUREKA_CONFIG.APPS.PIPELINE,'_blank')" title="Pipeline" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.18);border-radius:8px;padding:7px 4px;font-size:11px;font-weight:700;color:var(--gold);cursor:pointer;text-decoration:none">🏗 Pipeline</a>
-      <a href="javascript:void(0)" onclick="window.open(HEUREKA_CONFIG.APPS.PUNCH,'_blank')" title="Punch" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.18);border-radius:8px;padding:7px 4px;font-size:11px;font-weight:700;color:var(--gold);cursor:pointer;text-decoration:none">⏱ Punch</a>
-      <a href="javascript:void(0)" onclick="window.open(HEUREKA_CONFIG.APPS.MARKETING,'_blank')" title="Marketing" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.18);border-radius:8px;padding:7px 4px;font-size:11px;font-weight:700;color:var(--gold);cursor:pointer;text-decoration:none">📣 Mkt</a>
+    <div class="sb-app-links">
+      <a class="sb-app-link" onclick="window.open(HEUREKA_CONFIG.APPS.PIPELINE,'_blank')">🏗 Pipeline</a>
+      <a class="sb-app-link" onclick="window.open(HEUREKA_CONFIG.APPS.PUNCH,'_blank')">⏱ Punch</a>
+      <a class="sb-app-link" onclick="window.open(HEUREKA_CONFIG.APPS.MARKETING,'_blank')">📣 Mkt</a>
     </div>
     <div class="sb-user">
       <div class="u-av">P</div>
