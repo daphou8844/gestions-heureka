@@ -964,60 +964,22 @@ const avTextColor = name => avColor(name)==='av-gold' ? '#000' : '#D4AF37';
 const initials = name => name.trim().split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
 
 // =====================================================
-//  SEED DEMO DATA (first load only)
+//  NETTOYAGE DONNÉES DÉMO
 // =====================================================
-function seedDemo() {
-  if (DB.get('seeded').length) return;
-  const emps = [
-    {id:'e1',fname:'Marc',lname:'Beauchamp',role:'Contremaître',teamType:'chantier',rate:32,phone:'514-555-0101',email:'marc@email.com',nas:'1234',active:'1'},
-    {id:'e2',fname:'Luc',lname:'Tremblay',role:'Charpentier',teamType:'chantier',rate:28,phone:'514-555-0102',email:'luc@email.com',nas:'2345',active:'1'},
-    {id:'e3',fname:'Kevin',lname:'Ouellet',role:'Directeur',teamType:'bureau',rate:35,phone:'514-555-0103',email:'kevin@email.com',nas:'3456',active:'1'},
-    {id:'e4',fname:'Mathieu',lname:'Roy',role:'Adjointe à la direction',teamType:'bureau',rate:33,phone:'514-555-0104',email:'mathieu@email.com',nas:'4567',active:'1'},
-    {id:'e5',fname:'Steve',lname:'Gagnon',role:'Adjointe administrative',teamType:'bureau',rate:22,phone:'514-555-0105',email:'steve@email.com',nas:'5678',active:'1'},
-    {id:'e6',fname:'Jimmy',lname:'Côté',role:'Service aux ventes',teamType:'bureau',rate:30,phone:'514-555-0106',email:'jimmy@email.com',nas:'6789',active:'1'},
-  ];
-  const jobs = [
-    {id:'j1',name:'Résidence Tremblay',client:'Famille Tremblay',address:'45 rue des Pins, Laval',status:'actif',start:'2026-04-01',end:'2026-07-15',budget:180000,foreman:'e1',notes:'Extension 2 étages'},
-    {id:'j2',name:'Entrepôt Industriel A',client:'Cie Logistik Inc.',address:'1200 boul. Industriel, Longueuil',status:'actif',start:'2026-03-15',end:'2026-09-30',budget:450000,foreman:'e1',notes:'Structure acier'},
-    {id:'j3',name:'Condo Le Plateau',client:'Promoteur Urbain SA',address:'2300 av. du Parc, Montréal',status:'pause',start:'2026-02-01',end:'2026-12-01',budget:890000,foreman:'e1',notes:'12 unités'},
-    {id:'j4',name:'Garage Résidentiel',client:'Paul Simard',address:'78 rue Laurier, Brossard',status:'a_programmer',start:'2026-05-20',end:'2026-06-15',budget:35000,foreman:'e1',notes:'Détaché double'},
-  ];
-  const t = today();
-  const [ty,tm,td] = t.split('-').map(Number);
-  function dateOffset(days) {
-    const d = new Date(ty,tm-1,td+days);
-    return isoDate(d); // local date components → YYYY-MM-DD, no UTC shift
-  }
-  const punchs = [
-    {id:'p1',empId:'e1',jobId:'j1',date:t,punchIn:'07:02',punchOut:'16:05',note:''},
-    {id:'p2',empId:'e2',jobId:'j1',date:t,punchIn:'07:15',punchOut:'16:10',note:''},
-    {id:'p3',empId:'e3',jobId:'j2',date:t,punchIn:'07:30',punchOut:'16:30',note:''},
-    {id:'p4',empId:'e4',jobId:'j2',date:t,punchIn:'08:00',punchOut:'17:00',note:''},
-    {id:'p5',empId:'e5',jobId:'j1',date:t,punchIn:'07:00',punchOut:'15:45',note:''},
-    {id:'p6',empId:'e1',jobId:'j2',date:dateOffset(-1),punchIn:'07:00',punchOut:'16:00',note:''},
-    {id:'p7',empId:'e2',jobId:'j2',date:dateOffset(-1),punchIn:'07:10',punchOut:'16:30',note:''},
-    {id:'p8',empId:'e6',jobId:'j1',date:dateOffset(-1),punchIn:'08:00',punchOut:'17:00',note:''},
-    {id:'p9',empId:'e3',jobId:'j1',date:dateOffset(-2),punchIn:'07:00',punchOut:'15:30',note:''},
-    {id:'p10',empId:'e5',jobId:'j2',date:dateOffset(-2),punchIn:'07:00',punchOut:'16:00',note:''},
-  ];
-  const shifts = [
-    {id:'s1',empId:'e1',jobId:'j1',date:t,start:'07:00',end:'16:00'},
-    {id:'s2',empId:'e2',jobId:'j1',date:t,start:'07:00',end:'16:00'},
-    {id:'s3',empId:'e5',jobId:'j1',date:t,start:'07:00',end:'16:00'},
-    {id:'s4',empId:'e3',jobId:'j2',date:t,start:'07:30',end:'17:00'},
-    {id:'s5',empId:'e4',jobId:'j2',date:t,start:'08:00',end:'17:00'},
-  ];
-  const horaires = [
-    {id:'h1',jobId:'j1',date:t,start:'07:00',end:'16:00',empIds:['e1','e2','e5'],note:'Apporter outil ceinture',sent:true,sentAt:new Date().toISOString()},
-    {id:'h2',jobId:'j2',date:t,start:'07:30',end:'17:00',empIds:['e3','e4'],note:'',sent:true,sentAt:new Date().toISOString()},
-  ];
-  DB.set('employees',emps);
-  DB.set('jobs',jobs);
-  DB.set('punchs',punchs);
-  DB.set('shifts',shifts);
-  DB.set('horaires',horaires);
-  DB.set('seeded',['yes']);
-  DB.setCfg({company:'Gestions Heureka',otRate:1.5,otHours:40,scriptUrl:''});
+function clearDemoData() {
+  if(localStorage.getItem('hk_demo_cleared')) return;
+  const demoE = new Set(['e1','e2','e3','e4','e5','e6']);
+  const demoJ = new Set(['j1','j2','j3','j4']);
+  const demoP = new Set(['p1','p2','p3','p4','p5','p6','p7','p8','p9','p10']);
+  const demoS = new Set(['s1','s2','s3','s4','s5']);
+  const demoH = new Set(['h1','h2']);
+  DB.set('employees', DB.get('employees').filter(x=>!demoE.has(x.id)));
+  DB.set('jobs',      DB.get('jobs').filter(x=>!demoJ.has(x.id)));
+  DB.set('punchs',    DB.get('punchs').filter(x=>!demoP.has(x.id)));
+  DB.set('shifts',    DB.get('shifts').filter(x=>!demoS.has(x.id)));
+  DB.set('horaires',  DB.get('horaires').filter(x=>!demoH.has(x.id)));
+  DB.set('seeded', []);
+  localStorage.setItem('hk_demo_cleared','1');
 }
 
 // =====================================================
@@ -2345,7 +2307,7 @@ document.querySelectorAll('.overlay').forEach(o=>{
 // =====================================================
 //  INIT
 // =====================================================
-seedDemo();
+clearDemoData();
 // Migration: fermer les punches de démo laissés ouverts (punchOut vide, date passée)
 (function migrateDemoPunchs(){
   const t=today();
