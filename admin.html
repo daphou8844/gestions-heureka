@@ -2382,14 +2382,11 @@ async function autoSyncPunchs(){
     }
   }catch(e){ /* silent — offline OK */ }
 }
-// Auto-sync punchs depuis Sheet toutes les 30 secondes
-setInterval(autoSyncPunchs, 30000);
-// Sync immédiat au chargement (après 3 s)
+const _SI = HEUREKA_CONFIG.SYNC_INTERVAL_MS;
+setInterval(autoSyncPunchs, _SI);
 setTimeout(autoSyncPunchs, 3000);
-// Auto-sync jobs depuis Google Sheets toutes les 30 secondes
-setInterval(autoSyncJobs, 30000);
-// Auto-sync chantiers dans le formulaire Horaires toutes les 30 secondes
-setInterval(()=>{ if(currentPanel==='horaires') syncChantiersToHorForm(); },30000);
+setInterval(autoSyncJobs, _SI);
+setInterval(()=>{ if(currentPanel==='horaires') syncChantiersToHorForm(); },_SI);
 </script>
 </body>
 </html>
