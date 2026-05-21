@@ -1347,6 +1347,7 @@ function saveJob() {
   const idx = jobs.findIndex(j=>j.id===id);
   if(idx>=0) jobs[idx]=job; else jobs.push(job);
   DB.set('jobs',jobs);
+  _sheetPost({action:'saveJob', job});
   closeModal('modal-job');
   renderJobs();
   toast('Chantier enregistré ✓','ok');
@@ -1372,6 +1373,7 @@ function editJob(id) {
 function deleteJob(id) {
   if(!confirm('Supprimer ce chantier?')) return;
   DB.set('jobs', DB.get('jobs').filter(j=>j.id!==id));
+  _sheetPost({action:'deleteJob', id});
   renderJobs(); toast('Chantier supprimé','info');
 }
 function openJobGallery(jobId) {
@@ -1510,6 +1512,11 @@ function openShiftEdit(id) {
 function _deletePlanningFromSheet(planningId) {
   if(!planningId) return;
   fetch(HEUREKA_CONFIG.APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'deleteRow',sheet:'Planning',id:planningId})}).catch(()=>{});
+}
+function _sheetPost(payload) {
+  const url = HEUREKA_CONFIG.APPS_SCRIPT_URL;
+  if (!url) return;
+  fetch(url, { method:'POST', body:JSON.stringify(payload), redirect:'follow' }).catch(()=>{});
 }
 function deleteShift() {
   if(!confirm('Supprimer ce quart du planning ?')) return;
@@ -1890,6 +1897,7 @@ function savePunch() {
   const idx=ps.findIndex(x=>x.id===id);
   if(idx>=0) ps[idx]=p; else ps.push(p);
   DB.set('punchs',ps);
+  _sheetPost({action:'savePunch', punch:p});
   closeModal('modal-punch');
   if(currentPanel==='punchs') renderPunchsTable();
   toast('Punch enregistré ✓','ok');
@@ -1908,6 +1916,7 @@ function editPunch(id) {
 function deletePunch(id) {
   if(!confirm('Supprimer ce punch?')) return;
   DB.set('punchs',DB.get('punchs').filter(p=>p.id!==id));
+  _sheetPost({action:'deletePunch', id});
   renderPunchsTable(); toast('Punch supprimé','info');
 }
 
@@ -2159,6 +2168,7 @@ function saveEmployee() {
   const idx=emps.findIndex(x=>x.id===id);
   if(idx>=0) emps[idx]=e; else emps.push(e);
   DB.set('employees',emps);
+  _sheetPost({action:'saveEmployee', employee:e});
   closeModal('modal-emp');
   if(currentPanel==='equipe') renderEquipe();
   toast('Employé enregistré ✓','ok');
@@ -2181,6 +2191,7 @@ function editEmployee(id) {
 function deleteEmployee(id) {
   if(!confirm('Supprimer cet employé? Ses punchs seront conservés.')) return;
   DB.set('employees',DB.get('employees').filter(e=>e.id!==id));
+  _sheetPost({action:'deleteEmployee', id});
   renderEquipe(); toast('Employé supprimé','info');
 }
 
