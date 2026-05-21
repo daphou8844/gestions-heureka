@@ -19,6 +19,7 @@ const NEW_SHEETS = {
   MKT_CONTENU: 'Marketing_Contenu',
   MKT_TIKTOK:  'Marketing_TikTok',
   CONFIG:      'Config',
+  STRATEGIES:  'Strategies',
 };
 
 const NEW_HEADERS = {
@@ -33,6 +34,7 @@ const NEW_HEADERS = {
   MKT_CONTENU: ['ID_Contenu',   'Projet_ID',    'Client',           'Type_Travaux',    'Ville',            'Date_Fin_Chantier', 'Statut_Contenu',    'Type_Post',        'Plateforme',      'Texte_Contenu','Date_Publication'],
   MKT_TIKTOK:  ['ID_Tendance',  'Hashtag',      'Vues',             'Score_Pertinence','Date_Capturée',    'Utilisé'],
   CONFIG:      ['Clé',          'Valeur'],
+  STRATEGIES:  ['ID_Strategie', 'Nom',          'Plateformes',      'Statut',          'Objectif',         'Budget_Prevu',     'Leads_Vises',       'Projets_Vises',    'Idees',           'Actions',     'Leads_Obtenus',   'Projets_Signes',  'Revenus_Reels',   'Budget_Reel',     'Note_Bilan',      'Bilan_Texte',     'Notes',           'Date_Debut',      'Date_Fin',        'Date_Cree'],
 };
 
 const NEW_COLORS = {
@@ -47,6 +49,7 @@ const NEW_COLORS = {
   MKT_CONTENU: { bg: '#0d1428', fg: '#FF69B4' },
   MKT_TIKTOK:  { bg: '#0d0d1a', fg: '#00FFFF' },
   CONFIG:      { bg: '#1a1a1a', fg: '#888888' },
+  STRATEGIES:  { bg: '#0a1628', fg: '#D4AF37' },
 };
 
 const ID_PREFIXES = {
@@ -61,6 +64,7 @@ const ID_PREFIXES = {
   'Marketing_Contenu': 'MCT',
   'Marketing_TikTok':  'TIK',
   'Config':            'CFG',
+  'Strategies':        'STR',
 };
 
 // ── CRUD générique ─────────────────────────────────────────
@@ -104,7 +108,8 @@ function addRow(sheetName, data) {
   var sheet   = _getOrInitNewSheet(sheetName);
   var headers = NEW_HEADERS[headerKey];
   var prefix  = ID_PREFIXES[sheetName] || 'ROW';
-  var id      = _generateId(sheet, prefix);
+  var provided = data[headers[0]] ? data[headers[0]].toString().trim() : '';
+  var id      = provided || _generateId(sheet, prefix);
 
   // Injecter l'ID et les valeurs par défaut
   data[headers[0]] = id;

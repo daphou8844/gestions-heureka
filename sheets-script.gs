@@ -195,10 +195,12 @@ function doPost(e) {
         result = addRow(data.sheet, data.data || {});
         break;
       case 'updateRow':
-        result = updateRow(data.sheet, data.id, data.data || {});
+        var updateId = data.id || (data.key && data.data ? data.data[data.key] : undefined);
+        result = updateRow(data.sheet, updateId, data.data || {});
         break;
       case 'deleteRow':
-        result = deleteRow(data.sheet, data.id);
+        var deleteId = data.id || (data.key && data.data ? data.data[data.key] : undefined);
+        result = deleteRow(data.sheet, deleteId);
         break;
       case 'getConfig':
         var cfgVal = getConfigValue(data.key);
