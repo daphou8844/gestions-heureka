@@ -216,6 +216,11 @@ function doPost(e) {
         result = { status: 'ok', message: 'initAllSheets exécuté' };
         break;
 
+      // --- Drive partagé ---
+      case 'createChantierFolder':
+        result = handleCreateChantierFolder(data);
+        break;
+
       default:
         result = { status: 'error', message: 'Action inconnue: ' + action };
     }
