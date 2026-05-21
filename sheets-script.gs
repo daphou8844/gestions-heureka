@@ -220,6 +220,12 @@ function doPost(e) {
       case 'createChantierFolder':
         result = handleCreateChantierFolder(data);
         break;
+      case 'createPunchReport':
+        result = handlePunchReport(data);
+        break;
+      case 'uploadFile':
+        result = handleUploadFile(data);
+        break;
 
       default:
         result = { status: 'error', message: 'Action inconnue: ' + action };

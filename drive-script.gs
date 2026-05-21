@@ -238,3 +238,158 @@ function getChantierSubfolder(driveId, subfolderName) {
     return null;
   }
 }
+
+// ── RAPPORT DE TEMPS — depuis punch.html ─────────────────────
+
+/**
+ * Cherche le Drive_ID d'un chantier dans l'onglet Chantiers.
+ * Essaie d'abord par ID exact, puis par nom partiel.
+ */
+function _findChantierDriveId(jobId, jobName) {
+  try {
+    var sheet = _ss().getSheetByName('Chantiers');
+    if (!sheet) return null;
+
+    var data = sheet.getDataRange().getValues();
+    if (data.length < 2) return null;
+
+    var headers = data[0].map(function(h){ return h.toString().trim(); });
+    var idCol      = headers.indexOf('ID_Chantier');
+    var nameCol    = headers.indexOf('Nom_Chantier');
+    var driveIdCol = headers.indexOf('Drive_ID');
+    if (driveIdCol === -1) return null;
+
+    for (var i = 1; i < data.length; i++) {
+      var rowDriveId = data[i][driveIdCol] ? data[i][driveIdCol].toString().trim() : '';
+      if (!rowDriveId) continue;
+
+      var rowId   = idCol   >= 0 ? (data[i][idCol]   || '').toString().trim() : '';
+      var rowName = nameCol >= 0 ? (data[i][nameCol]  || '').toString().trim().toLowerCase() : '';
+
+      if ((jobId && rowId === jobId) ||
+          (jobName && rowName && rowName.indexOf(jobName.toLowerCase()) >= 0)) {
+        return rowDriveId;
+      }
+    }
+  } catch(e) {
+    Logger.log('_findChantierDriveId error: ' + e);
+  }
+  return null;
+}
+
+/**
+ * Crée un Google Doc de rapport dans 📁 Heures du chantier Drive.
+ * Fallback: 📁 03 - RH & Paie / Heures Ponctuels si le chantier n'est pas lié.
+ *
+ * data: { empId, empName, empPrenom, jobId, jobName,
+ *         date, punchIn, punchOut, heures, pauseMin,
+ *         notes, rapport:{travaux,problemes,materiaux} }
+ */
+function createPunchReport(data) {
+  // 1. Trouver le dossier Heures
+  var driveId = _findChantierDriveId(data.jobId, data.jobName);
+  var heuresFolder;
+
+  if (driveId) {
+    heuresFolder = getChantierSubfolder(driveId, 'Heures');
+  } else {
+    var root     = _driveRoot();
+    var rhFolder = _getOrCreateFolder(root, DRIVE_FOLDER_NAMES.RH_PAIE);
+    heuresFolder = _getOrCreateFolder(rhFolder, 'Heures Ponctuels');
+  }
+
+  if (!heuresFolder) throw new Error('Impossible de trouver le dossier Heures');
+
+  // 2. Nom du document
+  var prenom  = (data.empPrenom || (data.empName || 'Employe').split(' ')[0]);
+  var dateStr = data.date || Utilities.formatDate(new Date(), 'America/Toronto', 'yyyy-MM-dd');
+  var docName = 'Heures_' + prenom + '_' + dateStr + '_' + (data.jobId || 'CHANTIER');
+
+  // 3. Créer le Google Doc
+  var doc    = DocumentApp.create(docName);
+  var docId  = doc.getId();
+  var docFile = DriveApp.getFileById(docId);
+  heuresFolder.addFile(docFile);
+  DriveApp.getRootFolder().removeFile(docFile);
+
+  // 4. Rédiger le contenu
+  var body = doc.getBody();
+  body.clear();
+
+  var title = body.appendParagraph('Rapport de Temps — Heuréka Construction');
+  title.setHeading(DocumentApp.ParagraphHeading.HEADING1);
+  body.appendParagraph('');
+
+  body.appendParagraph('Employé  : ' + (data.empName  || ''));
+  body.appendParagraph('Date     : ' + dateStr);
+  body.appendParagraph('Chantier : ' + (data.jobName  || '') + (data.jobId ? '  (' + data.jobId + ')' : ''));
+  body.appendParagraph('');
+
+  body.appendParagraph('Punch In     : ' + (data.punchIn  || ''));
+  body.appendParagraph('Punch Out    : ' + (data.punchOut || ''));
+  body.appendParagraph('Heures nettes: ' + (data.heures   || '') + ' h');
+  if (data.pauseMin) {
+    body.appendParagraph('Pauses       : ' + data.pauseMin + ' min');
+  }
+  body.appendParagraph('');
+
+  if (data.notes) {
+    body.appendParagraph('Notes : ' + data.notes);
+    body.appendParagraph('');
+  }
+
+  if (data.rapport) {
+    var h2 = body.appendParagraph('Rapport de fin de journée');
+    h2.setHeading(DocumentApp.ParagraphHeading.HEADING2);
+    if (data.rapport.travaux)    body.appendParagraph('Travaux effectués : ' + data.rapport.travaux);
+    if (data.rapport.problemes)  body.appendParagraph('Problèmes         : ' + data.rapport.problemes);
+    if (data.rapport.materiaux)  body.appendParagraph('Matériaux         : ' + data.rapport.materiaux);
+    body.appendParagraph('');
+  }
+
+  doc.saveAndClose();
+
+  var docUrl = 'https://docs.google.com/document/d/' + docId;
+  return { status: 'ok', docId: docId, docUrl: docUrl, docName: docName };
+}
+
+function handlePunchReport(data) {
+  try {
+    return createPunchReport(data);
+  } catch(e) {
+    Logger.log('handlePunchReport error: ' + e);
+    return { status: 'error', message: e.toString() };
+  }
+}
+
+// ── UPLOAD FICHIER VERS DRIVE ─────────────────────────────────
+
+/**
+ * Reçoit un fichier en base64 et le dépose dans le bon sous-dossier.
+ * data: { driveId, subfolder, fileName, mimeType, content (base64) }
+ */
+function uploadFileToDrive(data) {
+  if (!data.driveId)  throw new Error('driveId manquant');
+  if (!data.content)  throw new Error('Contenu du fichier manquant');
+  if (!data.fileName) throw new Error('Nom de fichier manquant');
+
+  var subfolder = getChantierSubfolder(data.driveId, data.subfolder || 'Plans & Devis');
+  if (!subfolder) throw new Error('Impossible d\'accéder au sous-dossier: ' + data.subfolder);
+
+  var bytes    = Utilities.base64Decode(data.content);
+  var blob     = Utilities.newBlob(bytes, data.mimeType || 'application/octet-stream', data.fileName);
+  var file     = subfolder.createFile(blob);
+  var fileId   = file.getId();
+  var fileUrl  = 'https://drive.google.com/file/d/' + fileId + '/view';
+
+  return { status: 'ok', fileId: fileId, fileUrl: fileUrl, fileName: data.fileName };
+}
+
+function handleUploadFile(data) {
+  try {
+    return uploadFileToDrive(data);
+  } catch(e) {
+    Logger.log('handleUploadFile error: ' + e);
+    return { status: 'error', message: e.toString() };
+  }
+}

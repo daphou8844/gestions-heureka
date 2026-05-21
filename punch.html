@@ -1086,6 +1086,33 @@ async function syncSheets() {
       })
     });
   } catch(e) { /* silent */ }
+  // Rapport Drive dans 📁 Heures uniquement au punch out
+  if (punch && punch.punchOut) {
+    try {
+      const r = punch.rapport;
+      const netHrs = punch.punchOutMs && punch.punchInMs
+        ? ((punch.punchOutMs - punch.punchInMs - (punch.totalPauseMs||0)) / 3600000).toFixed(2)
+        : '0';
+      fetch(cfg.scriptUrl, {
+        method:'POST',
+        body: JSON.stringify({
+          action:     'createPunchReport',
+          empId:      punch.empId,
+          empName:    emp.fname+' '+(emp.lname||''),
+          empPrenom:  emp.fname,
+          jobId:      punch.jobId,
+          jobName:    getJob(punch.jobId).name,
+          date:       punch.date,
+          punchIn:    punch.punchIn,
+          punchOut:   punch.punchOut,
+          heures:     netHrs,
+          pauseMin:   Math.round((punch.totalPauseMs||0)/60000),
+          notes:      punch.notes||'',
+          rapport:    r ? {travaux:r.travaux||'',problemes:r.problemes||'',materiaux:r.materiaux||''} : null
+        })
+      }).catch(function(){});
+    } catch(e) { /* silent */ }
+  }
 }
 
 async function syncLive() {

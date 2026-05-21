@@ -902,6 +902,20 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
   </div>
 </div>
 
+<!-- Modal Documents Drive -->
+<div class="overlay" id="modal-drive">
+  <div class="modal">
+    <div class="m-hd">
+      <span class="m-title" id="drive-modal-title">📁 Documents Drive</span>
+      <button class="m-close" onclick="closeModal('modal-drive')">✕</button>
+    </div>
+    <div class="m-body" id="drive-modal-body"></div>
+    <div class="m-foot" id="drive-modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('modal-drive')">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Galerie Photos Chantier -->
 <div class="overlay" id="modal-gallery">
   <div class="modal modal-lg">
@@ -1267,6 +1281,7 @@ function renderJobsTable(jobs) {
       <td>
         <div style="display:flex;gap:6px">
           <button class="btn btn-outline btn-sm" onclick="openJobGallery('${j.id}')" title="Galerie photos">📷${photoCnt?`<span style="margin-left:3px;font-size:10px;font-weight:800;color:var(--gold)">${photoCnt}</span>`:''}</button>
+          <button class="btn btn-outline btn-sm" onclick="openDriveModal('${j.id}')" title="Documents Drive">📁${j.driveId?`<span style="margin-left:3px;font-size:10px;font-weight:800;color:var(--gold)">✓</span>`:''}</button>
           <button class="btn btn-outline btn-sm" onclick="editJob('${j.id}')">✏</button>
           <button class="btn btn-red btn-sm" onclick="deleteJob('${j.id}')">🗑</button>
         </div>
@@ -2369,6 +2384,119 @@ setInterval(autoSyncPunchs, _SI);
 setTimeout(autoSyncPunchs, 3000);
 setInterval(autoSyncJobs, _SI);
 setInterval(()=>{ if(currentPanel==='horaires') syncChantiersToHorForm(); },_SI);
+
+// =====================================================
+//  DOCUMENTS DRIVE — chantier
+// =====================================================
+let _driveJobId = null;
+const DRIVE_SUBFOLDERS = ['Plans & Devis','Photos','Contrats & Permis','Factures & Paiements','Heures'];
+
+function openDriveModal(jobId) {
+  _driveJobId = jobId;
+  const j = DB.get('jobs').find(x=>x.id===jobId)||{name:'—'};
+  document.getElementById('drive-modal-title').textContent = '📁 '+j.name;
+  renderDriveModal(j);
+  openModal('modal-drive');
+}
+
+function renderDriveModal(j) {
+  const body = document.getElementById('drive-modal-body');
+  const foot = document.getElementById('drive-modal-foot');
+  if (!j.driveId) {
+    body.innerHTML = `
+      <div style="text-align:center;padding:24px 0">
+        <div style="font-size:40px;margin-bottom:12px">📁</div>
+        <div style="margin-bottom:16px;color:var(--txt2)">Aucun dossier Drive lié à ce chantier.</div>
+        <button class="btn btn-gold" onclick="createJobDriveFolder('${j.id}')">Créer le dossier Drive</button>
+      </div>`;
+    foot.innerHTML = `<button class="btn btn-outline" onclick="closeModal('modal-drive')">Fermer</button>`;
+    return;
+  }
+  body.innerHTML = `
+    <div style="margin-bottom:14px">
+      <a href="${j.driveUrl}" target="_blank" class="btn btn-outline btn-sm">🔗 Ouvrir le dossier Drive</a>
+    </div>
+    <div class="fg">
+      <label>Sous-dossier</label>
+      <select id="drive-subfolder" style="background:var(--bg3);border:1px solid var(--bdr);border-radius:var(--rad2);padding:8px 12px;color:var(--txt);font-size:13px;outline:none;width:100%">
+        ${DRIVE_SUBFOLDERS.map(s=>`<option value="${s}">${s}</option>`).join('')}
+      </select>
+    </div>
+    <div class="fg">
+      <label>Fichier (max 10 Mo)</label>
+      <input type="file" id="drive-file-input" accept=".pdf,.jpg,.jpeg,.png,.docx,.xlsx,.doc,.xls,.txt" style="color:var(--txt)">
+    </div>
+    <div id="drive-upload-progress" style="display:none;color:var(--gold);font-size:13px;margin-top:6px">⏳ Envoi en cours...</div>
+    <div id="drive-upload-result" style="margin-top:6px;font-size:13px"></div>`;
+  foot.innerHTML = `
+    <button class="btn btn-outline" onclick="closeModal('modal-drive')">Fermer</button>
+    <button class="btn btn-gold" onclick="uploadJobDocument()">⬆ Uploader</button>`;
+}
+
+async function createJobDriveFolder(jobId) {
+  const cfg = DB.cfg();
+  if (!cfg.scriptUrl) { toast('Configurer l\'URL Apps Script dans Paramètres','info'); return; }
+  const jobs = DB.get('jobs');
+  const j = jobs.find(x=>x.id===jobId);
+  if (!j) return;
+  toast('Création du dossier Drive...','info');
+  try {
+    const res = await fetch(cfg.scriptUrl, {
+      method:'POST',
+      body: JSON.stringify({ action:'createChantierFolder', clientNom:j.client||j.name, ville:'', projetId:j.id })
+    });
+    const data = await res.json();
+    if (data.status==='ok') {
+      j.driveId  = data.driveId;
+      j.driveUrl = data.driveUrl;
+      j.chanId   = data.chanId;
+      DB.set('jobs', jobs);
+      renderJobs();
+      renderDriveModal(j);
+      toast('Dossier Drive créé ✓','ok');
+    } else { toast('Erreur: '+(data.message||'Inconnue'),'err'); }
+  } catch(e) { toast('Erreur de connexion','err'); }
+}
+
+async function uploadJobDocument() {
+  const cfg = DB.cfg();
+  if (!cfg.scriptUrl) { toast('Configurer l\'URL Apps Script dans Paramètres','info'); return; }
+  const j = DB.get('jobs').find(x=>x.id===_driveJobId);
+  if (!j||!j.driveId) { toast('Pas de dossier Drive lié','err'); return; }
+  const fileInput = document.getElementById('drive-file-input');
+  const subfolder = document.getElementById('drive-subfolder').value;
+  const file = fileInput.files[0];
+  if (!file) { toast('Sélectionner un fichier','err'); return; }
+  if (file.size > 10*1024*1024) { toast('Fichier trop grand (max 10 Mo)','err'); return; }
+  const progress = document.getElementById('drive-upload-progress');
+  const result   = document.getElementById('drive-upload-result');
+  progress.style.display = '';
+  result.innerHTML = '';
+  try {
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    const res = await fetch(cfg.scriptUrl, {
+      method:'POST',
+      body: JSON.stringify({ action:'uploadFile', driveId:j.driveId, subfolder, fileName:file.name, mimeType:file.type||'application/octet-stream', content:base64 })
+    });
+    const data = await res.json();
+    progress.style.display = 'none';
+    if (data.status==='ok') {
+      result.innerHTML = `<div style="color:#4CAF50">✓ ${file.name} uploadé — <a href="${data.fileUrl}" target="_blank" style="color:var(--gold)">Ouvrir dans Drive</a></div>`;
+      fileInput.value = '';
+      toast('Fichier uploadé dans Drive ✓','ok');
+    } else {
+      result.innerHTML = `<div style="color:#e74c3c">Erreur: ${data.message||'Inconnue'}</div>`;
+    }
+  } catch(e) {
+    progress.style.display = 'none';
+    result.innerHTML = `<div style="color:#e74c3c">Erreur de connexion</div>`;
+  }
+}
 </script>
 </body>
 </html>
