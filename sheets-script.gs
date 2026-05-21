@@ -31,6 +31,9 @@
 //  CONFIGURATION
 // ============================================================
 
+var HEUREKA_SS_ID = '1NVUNaS5qOo6PMZvSfh3MLDuJCmsUp5qu10967SaGipw';
+function _ss(){ return SpreadsheetApp.openById(HEUREKA_SS_ID); }
+
 const SHEETS = {
   EQUIPE:      'Équipe',
   JOBS:        'Jobs',
@@ -228,7 +231,7 @@ function doPost(e) {
 // ============================================================
 
 function syncAll(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = _ss();
 
   // 1. Écrire les employés
   if (data.employees && data.employees.length) {
@@ -383,7 +386,7 @@ function updateLive(data) {
 
 function clearLive() {
   // Réinitialiser la vue live chaque matin (peut être appelé par un trigger)
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEETS.LIVE);
+  const sheet = _ss().getSheetByName(SHEETS.LIVE);
   if (!sheet) return;
   const lastRow = sheet.getLastRow();
   if (lastRow > 1) {
@@ -611,7 +614,7 @@ function horaireFromRow(row, headers) {
  * Lire un onglet complet et retourner un tableau d'objets.
  */
 function readSheet(sheetName, fromRowFn) {
-  const ss    = SpreadsheetApp.getActiveSpreadsheet();
+  const ss    = _ss();
   const sheet = ss.getSheetByName(sheetName);
   if (!sheet) return [];
 
@@ -687,7 +690,7 @@ function bulkUpsert(sheet, items, toRowFn, idCol) {
  */
 function deleteById(sheetName, id) {
   if (!id) return { status: 'error', message: 'ID manquant' };
-  const ss    = SpreadsheetApp.getActiveSpreadsheet();
+  const ss    = _ss();
   const sheet = ss.getSheetByName(sheetName);
   if (!sheet) return { status: 'error', message: 'Onglet introuvable: ' + sheetName };
 
@@ -717,7 +720,7 @@ function findRowById(sheet, id, colIndex) {
  * Récupérer ou créer un onglet avec ses en-têtes formatés.
  */
 function getOrCreateSheet(name, headers, colorKey) {
-  const ss    = SpreadsheetApp.getActiveSpreadsheet();
+  const ss    = _ss();
   let   sheet = ss.getSheetByName(name);
 
   if (!sheet) {
@@ -885,7 +888,7 @@ function saveSoumission(s) {
 }
 
 function getSoumissions(limit) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEETS.SOUMISSIONS);
+  const sheet = _ss().getSheetByName(SHEETS.SOUMISSIONS);
   if (!sheet) return [];
 
   const data = sheet.getDataRange().getValues();
@@ -910,7 +913,7 @@ function getSoumissions(limit) {
  * Crée tous les onglets avec les bons en-têtes et la mise en forme.
  */
 function initSheets() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = _ss();
 
   Object.entries(SHEETS).forEach(([key, name]) => {
     getOrCreateSheet(name, HEADERS[key], key);
@@ -971,7 +974,7 @@ function installTriggers() {
 // ============================================================
 
 function weeklyPayrollReport() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = _ss();
 
   // Calculer la semaine dernière (lun-dim)
   const now    = new Date();

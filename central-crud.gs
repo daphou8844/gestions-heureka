@@ -5,6 +5,9 @@
 //  Gère les 12 onglets du Sheet unifié « Gestions Heuréka ».
 // ============================================================
 
+var HEUREKA_SS_ID = '1NVUNaS5qOo6PMZvSfh3MLDuJCmsUp5qu10967SaGipw';
+function _ss(){ return SpreadsheetApp.openById(HEUREKA_SS_ID); }
+
 // ── Définitions des nouveaux onglets ──────────────────────
 
 const NEW_SHEETS = {
@@ -74,7 +77,7 @@ const ID_PREFIXES = {
  * Le nom des clés = noms de colonnes (ligne 1 du Sheet).
  */
 function getData(sheetName) {
-  const ss    = SpreadsheetApp.getActiveSpreadsheet();
+  const ss    = _ss();
   const sheet = ss.getSheetByName(sheetName);
   if (!sheet) return [];
 
@@ -143,7 +146,7 @@ function updateRow(sheetName, id, data) {
   var headerKey = _findHeaderKey(sheetName);
   if (!headerKey) return { status: 'error', message: 'Onglet inconnu: ' + sheetName };
 
-  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var ss    = _ss();
   var sheet = ss.getSheetByName(sheetName);
   if (!sheet) return { status: 'error', message: 'Onglet non trouvé: ' + sheetName };
 
@@ -166,7 +169,7 @@ function updateRow(sheetName, id, data) {
  */
 function deleteRow(sheetName, id) {
   if (!id) return { status: 'error', message: 'ID manquant' };
-  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var ss    = _ss();
   var sheet = ss.getSheetByName(sheetName);
   if (!sheet) return { status: 'error', message: 'Onglet introuvable: ' + sheetName };
 
@@ -182,7 +185,7 @@ function deleteRow(sheetName, id) {
  * Lit une valeur dans l'onglet Config (colonne Clé → Valeur).
  */
 function getConfigValue(key) {
-  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var ss    = _ss();
   var sheet = ss.getSheetByName(NEW_SHEETS.CONFIG);
   if (!sheet) return null;
 
@@ -203,7 +206,7 @@ function getConfigValue(key) {
  * À exécuter une fois, ou via le menu Heureka.
  */
 function initAllSheets() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = _ss();
   var created = [];
   var skipped = [];
 
@@ -258,7 +261,7 @@ function _findHeaderKey(sheetName) {
 }
 
 function _getOrInitNewSheet(sheetName) {
-  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var ss    = _ss();
   var sheet = ss.getSheetByName(sheetName);
   if (!sheet) {
     var headerKey = _findHeaderKey(sheetName);
