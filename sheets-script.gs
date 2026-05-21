@@ -106,6 +106,9 @@ function doGet(e) {
       case 'getData':
         result = { status: 'ok', data: getData(e.parameter.sheet) };
         break;
+      case 'getChantierPhotos':
+        result = handleGetChantierPhotos({ driveId: e.parameter.driveId || '' });
+        break;
       case 'getConfig':
         var cfgValGet = getConfigValue(e.parameter.key);
         result = cfgValGet !== null

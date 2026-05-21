@@ -393,3 +393,47 @@ function handleUploadFile(data) {
     return { status: 'error', message: e.toString() };
   }
 }
+
+// ── LISTE DES PHOTOS D'UN CHANTIER (pour app Marketing) ──────
+
+/**
+ * Retourne la liste des images dans 📁 Photos d'un dossier chantier.
+ * data: { driveId }
+ */
+function listChantierPhotos(driveId) {
+  try {
+    var chanFolder = DriveApp.getFolderById(driveId);
+    var it = chanFolder.getFoldersByName('Photos');
+    if (!it.hasNext()) return [];
+    var photosFolder = it.next();
+    var photos = [];
+    var fIt = photosFolder.getFiles();
+    while (fIt.hasNext()) {
+      var f = fIt.next();
+      if (f.getMimeType().startsWith('image/')) {
+        photos.push({
+          fileId:       f.getId(),
+          fileName:     f.getName(),
+          viewUrl:      'https://drive.google.com/file/d/' + f.getId() + '/view',
+          thumbnailUrl: 'https://drive.google.com/thumbnail?id=' + f.getId() + '&sz=w300'
+        });
+      }
+    }
+    return photos;
+  } catch(e) {
+    Logger.log('listChantierPhotos error: ' + e);
+    return [];
+  }
+}
+
+function handleGetChantierPhotos(data) {
+  try {
+    var driveId = data.driveId || '';
+    if (!driveId) return { status: 'error', message: 'driveId manquant' };
+    var photos = listChantierPhotos(driveId);
+    return { status: 'ok', photos: photos };
+  } catch(e) {
+    Logger.log('handleGetChantierPhotos error: ' + e);
+    return { status: 'error', message: e.toString() };
+  }
+}
