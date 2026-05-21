@@ -6,7 +6,7 @@
 
 const HEUREKA_CONFIG = {
   SPREADSHEET_ID:  '1NVUNaS5qOo6PMZvSfh3MLDuJCmsUp5qu10967SaGipw',
-  ANTHROPIC_API_KEY: '',
+  GEMINI_API_KEY: 'AIzaSyBaULEcu9fgqRIDVg_ZLMVkiau4eV6K43k',
   APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbw7Z9CuFoUrkv5KG_wRgo5Zvm-TXnr2gu66S1kx9y9SBnthkxGMuFpj087TWtIKwuDLhw/exec',
   SYNC_INTERVAL_MS: 5000,
   SESSION_DURATION_H: 8,
