@@ -1778,6 +1778,7 @@ function sendHoraire() {
 }
 function deleteHoraire(id) {
   DB.set('horaires',DB.get('horaires').filter(h=>h.id!==id));
+  _sheetPost({action:'deleteRow', sheet:'Horaires', id});
   renderHorairesList(); toast('Horaire supprimé','info');
 }
 
