@@ -1159,6 +1159,55 @@ document.getElementById('rapport-sheet').addEventListener('click',e=>{
 // =====================================================
 //  INIT
 // =====================================================
+
+// ── Auto-sync employés + jobs depuis le Sheet au démarrage ──
+async function autoSyncFromSheet() {
+  const url = HEUREKA_CONFIG.APPS_SCRIPT_URL;
+  if (!url) return;
+  try {
+    // Employés
+    const re = await fetch(url+'?action=getEmployees', {redirect:'follow'});
+    const de = await re.json();
+    if (de.status==='ok' && de.employees && de.employees.length) {
+      DB.set('employees', de.employees);
+      renderIdScreen();
+    }
+  } catch(e) {}
+  try {
+    // Jobs (onglet Jobs — admin/punch)
+    const rj = await fetch(url+'?action=getJobs', {redirect:'follow'});
+    const dj = await rj.json();
+    if (dj.status==='ok' && dj.jobs && dj.jobs.length) {
+      const local = DB.get('jobs');
+      const localIds = new Set(local.map(j=>j.id));
+      const merged = [...dj.jobs, ...local.filter(j=>!localIds.has(j.id)&&j.id)];
+      DB.set('jobs', merged);
+    }
+  } catch(e) {}
+  try {
+    // Jobs depuis Pipeline (onglet Chantiers)
+    const rc = await fetch(url+'?action=getData&sheet=Chantiers', {redirect:'follow'});
+    const dc = await rc.json();
+    if (dc.status==='ok' && Array.isArray(dc.data) && dc.data.length) {
+      const local = DB.get('jobs');
+      const localIds = new Set(local.map(j=>j.id));
+      const newJobs = dc.data
+        .filter(r => r.ID_Chantier && r.Nom_Chantier && !localIds.has(r.ID_Chantier))
+        .map(r => ({
+          id:r.ID_Chantier, name:r.Nom_Chantier||'',
+          client:r.Client_ID||'', address:r.Adresse||'',
+          status:({termine:'terminé',en_attente:'pause'}[r.Statut]||'actif'),
+          start:r['Date_Début']||'', end:r['Date_Fin_Prévue']||'',
+          budget:0, foreman:'', notes:r.Notes||'', isFixedLocation:false, fixedTeam:''
+        }));
+      if (newJobs.length) DB.set('jobs', [...DB.get('jobs'), ...newJobs]);
+    }
+  } catch(e) {}
+}
+
+setTimeout(autoSyncFromSheet, 1500);
+setInterval(autoSyncFromSheet, 60000); // toutes les 60s (appareil mobile)
+
 initIdentity();
 </script>
 </body>
