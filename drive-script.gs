@@ -11,7 +11,7 @@
 // ============================================================
 
 // ── CONFIG — à remplir après avoir exécuté showSharedDriveId() ──
-var SHARED_DRIVE_FOLDER_ID = ''; // ex: '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs'
+var SHARED_DRIVE_FOLDER_ID = '0ABkq_Qy0NQ6IUk9PVA';
 
 var DRIVE_FOLDER_NAMES = {
   CHANTIERS:   '01 - Chantiers',
