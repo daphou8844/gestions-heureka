@@ -286,8 +286,8 @@ function _findChantierDriveId(jobId, jobName) {
  *         notes, rapport:{travaux,problemes,materiaux} }
  */
 function createPunchReport(data) {
-  // 1. Trouver le dossier Heures
-  var driveId = _findChantierDriveId(data.jobId, data.jobName);
+  // 1. Trouver le dossier Heures (driveId direct en priorité)
+  var driveId = data.driveId || _findChantierDriveId(data.jobId, data.jobName);
   var heuresFolder;
 
   if (driveId) {
@@ -515,6 +515,48 @@ function handleUploadFile(data) {
     return uploadFileToDrive(data);
   } catch(e) {
     Logger.log('handleUploadFile error: ' + e);
+    return { status: 'error', message: e.toString() };
+  }
+}
+
+// ── LISTE DES FICHIERS D'UN CHANTIER ─────────────────────────
+
+function listChantierFiles(driveId) {
+  var result = [];
+  try {
+    var chanFolder = DriveApp.getFolderById(driveId);
+    function scan(folder, prefix) {
+      var fi = folder.getFiles();
+      while (fi.hasNext()) {
+        var f = fi.next();
+        result.push({
+          fileId:       f.getId(),
+          fileName:     f.getName(),
+          subfolder:    prefix,
+          mimeType:     f.getMimeType(),
+          viewUrl:      'https://drive.google.com/file/d/' + f.getId() + '/view',
+          modifiedDate: Utilities.formatDate(f.getLastUpdated(), 'America/Toronto', 'yyyy-MM-dd')
+        });
+      }
+      var si = folder.getFolders();
+      while (si.hasNext()) {
+        var sub = si.next();
+        scan(sub, sub.getName());
+      }
+    }
+    scan(chanFolder, '');
+  } catch(e) {
+    Logger.log('listChantierFiles: ' + e);
+  }
+  return result;
+}
+
+function handleGetChantierFiles(data) {
+  try {
+    var driveId = data.driveId || '';
+    if (!driveId) return { status: 'error', message: 'driveId manquant' };
+    return { status: 'ok', files: listChantierFiles(driveId) };
+  } catch(e) {
     return { status: 'error', message: e.toString() };
   }
 }

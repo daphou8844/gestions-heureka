@@ -1197,15 +1197,15 @@ function renderJobsTable(jobs) {
     const empCount = [...new Set(punchs.filter(p=>p.jobId===j.id&&p.date===t&&!p.punchOut).map(p=>p.empId))].length;
     const fm = getEmp(j.foreman);
     const photoCnt = allPhotos.filter(p=>p.jobId===j.id).length;
-    return `<tr>
+    return `<tr style="cursor:pointer" onclick="openChantierDetail('${j.id}')">
       <td><div style="font-weight:700">${j.name}</div><div style="font-size:11px;color:var(--txt2)">${j.notes||''}</div></td>
       <td>${j.client}</td>
       <td style="font-size:12px">${j.address}</td>
-      <td>${jobStatusSelect(j)}</td>
+      <td onclick="event.stopPropagation()">${jobStatusSelect(j)}</td>
       <td style="font-size:12px">${fmt(j.start)}</td>
       <td style="font-size:12px">${fmt(j.end)}</td>
       <td>${j.isFixedLocation?`<span class="badge b-blue">📍 Lieu fixe · ${j.fixedTeam==='bureau'?'Bureau':'Chantier'}</span>`:`<span class="badge b-${empCount>0?'green':'gray'}">${empCount} présent${empCount>1?'s':''}</span>`}</td>
-      <td>
+      <td onclick="event.stopPropagation()">
         <div style="display:flex;gap:6px">
           <button class="btn btn-outline btn-sm" onclick="openJobGallery('${j.id}')" title="Galerie photos">📷${photoCnt?`<span style="margin-left:3px;font-size:10px;font-weight:800;color:var(--gold)">${photoCnt}</span>`:''}</button>
           <button class="btn btn-outline btn-sm" onclick="openDriveModal('${j.id}')" title="Documents Drive">📁${j.driveId?`<span style="margin-left:3px;font-size:10px;font-weight:800;color:var(--gold)">✓</span>`:''}</button>
@@ -1694,8 +1694,18 @@ function savePunch() {
   if(idx>=0) ps[idx]=p; else ps.push(p);
   DB.set('punchs',ps);
   _sheetPost({action:'savePunch', punch:p});
+  if(p.punchOut) {
+    const emp=getEmp(p.empId)||{}, job=getJob(p.jobId)||{};
+    _sheetPost({action:'createPunchReport',
+      driveId:job.driveId||'', empId:p.empId, empName:empFullName(emp), empPrenom:emp.fname||'',
+      jobId:p.jobId, jobName:job.name||'', date:p.date,
+      punchIn:fmtTime(p.punchIn), punchOut:fmtTime(p.punchOut),
+      heures:calcHours(fmtTime(p.punchIn),fmtTime(p.punchOut)).toFixed(2), notes:p.note||''
+    });
+  }
   closeModal('modal-punch');
   if(currentPanel==='punchs') renderPunchsTable();
+  if(_chanDetailId===p.jobId) renderChantierDetailPunchs();
   toast('Punch enregistré ✓','ok');
 }
 function editPunch(id) {
@@ -2229,6 +2239,7 @@ async function autoSyncPunchs(){
       if(currentPanel==='dashboard') renderDashboard();
       if(currentPanel==='live')      renderLive();
       if(currentPanel==='punchs')    renderPunchsTable();
+      if(_chanDetailId)              renderChantierDetailPunchs();
       // Badge live
       const t=today();
       const n=data.punchs.filter(p=>p.date===t&&!p.punchOut).length;
@@ -2387,6 +2398,139 @@ async function uploadJobDocument() {
     result.innerHTML = `<div style="color:#e74c3c">Erreur de connexion</div>`;
   }
 }
+// =====================================================
+//  CHANTIER DETAIL DRAWER
+// =====================================================
+let _chanDetailId=null, _chanDetailTab='punch', _chanDetailFiles=null;
+
+function openChantierDetail(jobId) {
+  _chanDetailId=jobId; _chanDetailTab='punch'; _chanDetailFiles=null;
+  const j=DB.get('jobs').find(x=>x.id===jobId)||{name:'?'};
+  document.getElementById('cdet-name').textContent=j.name;
+  document.getElementById('cdet-sub').textContent=[j.client,j.address].filter(Boolean).join(' · ');
+  const dl=document.getElementById('cdet-drive-link');
+  if(j.driveUrl){dl.href=j.driveUrl;dl.style.display='';}else{dl.style.display='none';}
+  document.getElementById('chan-backdrop').style.display='';
+  document.getElementById('chan-drawer').style.right='0';
+  switchChantierTab('punch');
+}
+function closeChantierDetail() {
+  _chanDetailId=null;
+  document.getElementById('chan-backdrop').style.display='none';
+  document.getElementById('chan-drawer').style.right='-700px';
+}
+function switchChantierTab(tab) {
+  _chanDetailTab=tab;
+  document.getElementById('cdet-punch-panel').style.display=tab==='punch'?'':'none';
+  document.getElementById('cdet-docs-panel').style.display=tab==='docs'?'':'none';
+  const tp=document.getElementById('cdet-tab-punch'), td=document.getElementById('cdet-tab-docs');
+  tp.style.background=tab==='punch'?'#D4AF37':'transparent'; tp.style.color=tab==='punch'?'#000':'rgba(255,255,255,.6)';
+  td.style.background=tab==='docs'?'#D4AF37':'transparent';  td.style.color=tab==='docs'?'#000':'rgba(255,255,255,.6)';
+  if(tab==='punch') renderChantierDetailPunchs();
+  if(tab==='docs')  loadChantierFiles();
+}
+function renderChantierDetailPunchs() {
+  if(!_chanDetailId) return;
+  const panel=document.getElementById('cdet-punch-panel');
+  const all=DB.get('punchs').filter(p=>p.jobId===_chanDetailId);
+  if(!all.length){
+    panel.innerHTML='<div style="text-align:center;padding:40px;color:rgba(255,255,255,.4)"><div style="font-size:36px;margin-bottom:8px">⏱</div><div>Aucun pointage pour ce chantier</div></div>';
+    return;
+  }
+  const sorted=[...all].sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(fmtTime(b.punchIn)||'').localeCompare(fmtTime(a.punchIn)||''));
+  const totalHrs=all.filter(p=>p.punchOut).reduce((s,p)=>s+calcHours(fmtTime(p.punchIn),fmtTime(p.punchOut)),0);
+  const byDate={};
+  sorted.forEach(p=>{if(!byDate[p.date])byDate[p.date]=[];byDate[p.date].push(p);});
+  let html=`<div style="display:flex;gap:10px;margin-bottom:16px">
+    <div style="background:#0d0d0d;border-radius:8px;padding:12px;flex:1;text-align:center;border:1px solid rgba(255,255,255,.07)">
+      <div style="font-size:20px;font-weight:800;color:#D4AF37">${fmtHours(totalHrs)}</div><div style="font-size:10px;color:rgba(255,255,255,.45)">Total heures</div></div>
+    <div style="background:#0d0d0d;border-radius:8px;padding:12px;flex:1;text-align:center;border:1px solid rgba(255,255,255,.07)">
+      <div style="font-size:20px;font-weight:800;color:#4CAF50">${all.filter(p=>!p.punchOut).length}</div><div style="font-size:10px;color:rgba(255,255,255,.45)">En cours</div></div>
+    <div style="background:#0d0d0d;border-radius:8px;padding:12px;flex:1;text-align:center;border:1px solid rgba(255,255,255,.07)">
+      <div style="font-size:20px;font-weight:800;color:#fff">${all.length}</div><div style="font-size:10px;color:rgba(255,255,255,.45)">Punchs total</div></div>
+  </div>`;
+  Object.entries(byDate).forEach(([date,punches])=>{
+    const dayHrs=punches.filter(p=>p.punchOut).reduce((s,p)=>s+calcHours(fmtTime(p.punchIn),fmtTime(p.punchOut)),0);
+    html+=`<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div style="font-size:12px;font-weight:700;color:#D4AF37">${fmt(date)}</div>
+      ${dayHrs>0?`<div style="font-size:11px;color:rgba(255,255,255,.45)">${fmtHours(dayHrs)}</div>`:''}
+    </div>`;
+    punches.forEach(p=>{
+      const e=getEmp(p.empId)||{fname:'?',lname:''};
+      const tIn=fmtTime(p.punchIn),tOut=fmtTime(p.punchOut);
+      const hrs=tOut?calcHours(tIn,tOut):null;
+      html+=`<div style="display:flex;align-items:center;gap:10px;padding:10px;background:#0d0d0d;border-radius:8px;margin-bottom:5px;border:1px solid rgba(255,255,255,.06)">
+        ${empAvatar(e,30)}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:700">${empFullName(e)}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.45)">${tIn}${tOut?' → '+tOut:' · En cours'}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">${hrs!==null&&hrs>0?`<div style="font-size:14px;font-weight:800;color:#fff">${fmtHours(hrs)}</div>`:'<div style="font-size:11px;color:#4CAF50;font-weight:700">En cours</div>'}</div>
+      </div>`;
+    });
+    html+=`</div>`;
+  });
+  panel.innerHTML=html;
+}
+async function loadChantierFiles() {
+  if(!_chanDetailId) return;
+  const j=DB.get('jobs').find(x=>x.id===_chanDetailId)||{};
+  const panel=document.getElementById('cdet-docs-panel');
+  if(!j.driveId){
+    panel.innerHTML='<div style="text-align:center;padding:40px;color:rgba(255,255,255,.4)"><div style="font-size:36px;margin-bottom:8px">📁</div><div>Aucun dossier Drive lié à ce chantier</div></div>';
+    return;
+  }
+  if(_chanDetailFiles){renderChantierDetailDocs(_chanDetailFiles);return;}
+  panel.innerHTML='<div style="text-align:center;padding:40px;color:rgba(255,255,255,.4)">⏳ Chargement des documents...</div>';
+  try{
+    const res=await fetch(HEUREKA_CONFIG.APPS_SCRIPT_URL+'?action=getChantierFiles&driveId='+encodeURIComponent(j.driveId),{redirect:'follow'});
+    const data=await res.json();
+    if(data.status==='ok'){_chanDetailFiles=data.files||[];renderChantierDetailDocs(_chanDetailFiles);}
+    else panel.innerHTML=`<div style="text-align:center;padding:40px;color:#e74c3c">Erreur: ${data.message||'Inconnue'}</div>`;
+  }catch(e){panel.innerHTML='<div style="text-align:center;padding:40px;color:#e74c3c">Erreur de connexion</div>';}
+}
+function renderChantierDetailDocs(files) {
+  const panel=document.getElementById('cdet-docs-panel');
+  const getIcon=m=>m.startsWith('image/')?'🖼':m.includes('pdf')?'📄':m.includes('document')?'📝':m.includes('spreadsheet')?'📊':m.startsWith('video/')?'🎥':'📎';
+  const refreshBtn=`<button class="btn btn-outline btn-sm" onclick="_chanDetailFiles=null;loadChantierFiles()">🔄 Actualiser</button>`;
+  if(!files.length){
+    panel.innerHTML=`<div style="text-align:center;padding:40px;color:rgba(255,255,255,.4)"><div style="font-size:36px;margin-bottom:8px">📁</div><div>Aucun document dans ce dossier</div><div style="margin-top:12px">${refreshBtn}</div></div>`;
+    return;
+  }
+  const byFolder={};
+  files.forEach(f=>{const k=f.subfolder||'Racine';if(!byFolder[k])byFolder[k]=[];byFolder[k].push(f);});
+  let html=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <div style="font-size:12px;color:rgba(255,255,255,.45)">${files.length} document${files.length>1?'s':''}</div>${refreshBtn}</div>`;
+  Object.entries(byFolder).forEach(([folder,ff])=>{
+    html+=`<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:700;color:#D4AF37;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">📁 ${folder}</div>`;
+    ff.forEach(f=>{html+=`<a href="${f.viewUrl}" target="_blank" style="display:flex;align-items:center;gap:10px;padding:10px;background:#0d0d0d;border-radius:8px;margin-bottom:5px;border:1px solid rgba(255,255,255,.06);text-decoration:none;color:inherit">
+      <span style="font-size:20px;flex-shrink:0">${getIcon(f.mimeType||'')}</span>
+      <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.fileName}</div>
+      <div style="font-size:10px;color:rgba(255,255,255,.4)">${f.modifiedDate||''}</div></div>
+      <span style="font-size:11px;color:#D4AF37;flex-shrink:0">🔗</span></a>`;});
+    html+=`</div>`;
+  });
+  panel.innerHTML=html;
+}
 </script>
+
+<!-- Chantier detail drawer -->
+<div id="chan-backdrop" onclick="closeChantierDetail()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:899"></div>
+<div id="chan-drawer" style="position:fixed;top:0;right:-700px;width:660px;max-width:100vw;height:100vh;background:#141414;border-left:1px solid rgba(255,255,255,.1);z-index:900;display:flex;flex-direction:column;transition:right .28s cubic-bezier(.4,0,.2,1);overflow:hidden">
+  <div style="padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.08);background:#0d0d0d;display:flex;align-items:flex-start;gap:10px;flex-shrink:0">
+    <div style="flex:1;min-width:0">
+      <div id="cdet-name" style="font-size:16px;font-weight:800;color:#D4AF37;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+      <div id="cdet-sub" style="font-size:11px;color:rgba(255,255,255,.45);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+    </div>
+    <a id="cdet-drive-link" href="#" target="_blank" class="btn btn-outline btn-sm" style="display:none;flex-shrink:0">📁 Drive</a>
+    <button class="btn btn-outline btn-sm" style="flex-shrink:0" onclick="closeChantierDetail()">✕ Fermer</button>
+  </div>
+  <div style="display:flex;border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0">
+    <button id="cdet-tab-punch" onclick="switchChantierTab('punch')" style="flex:1;padding:10px;font-size:13px;font-weight:700;border:none;cursor:pointer;background:#D4AF37;color:#000;border-radius:0;transition:background .15s">⏱ Pointages</button>
+    <button id="cdet-tab-docs" onclick="switchChantierTab('docs')" style="flex:1;padding:10px;font-size:13px;font-weight:700;border:none;cursor:pointer;background:transparent;color:rgba(255,255,255,.6);border-radius:0;transition:background .15s">📄 Documents</button>
+  </div>
+  <div id="cdet-punch-panel" style="flex:1;overflow-y:auto;padding:16px"></div>
+  <div id="cdet-docs-panel" style="flex:1;overflow-y:auto;padding:16px;display:none"></div>
+</div>
 </body>
 </html>

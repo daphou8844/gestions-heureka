@@ -109,6 +109,9 @@ function doGet(e) {
       case 'getChantierPhotos':
         result = handleGetChantierPhotos({ driveId: e.parameter.driveId || '' });
         break;
+      case 'getChantierFiles':
+        result = handleGetChantierFiles({ driveId: e.parameter.driveId || '' });
+        break;
       case 'getConfig':
         var cfgValGet = getConfigValue(e.parameter.key);
         result = cfgValGet !== null
