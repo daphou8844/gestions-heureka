@@ -2341,14 +2341,12 @@ async function autoSyncJobs(){
     const data=await res.json();
     if(data.status==='ok'&&data.jobs&&data.jobs.length){
       const local=DB.get('jobs');
-      const localIds=new Set(local.map(j=>j.id));
-      const newJobs=data.jobs.filter(j=>j.id&&!localIds.has(j.id));
-      if(newJobs.length>0){
-        DB.set('jobs',[...local,...newJobs]);
-        renderJobs();
-        updateSyncTime_();
-        toast(`📥 ${newJobs.length} nouveau${newJobs.length>1?'x':''} chantier${newJobs.length>1?'s':''} reçu${newJobs.length>1?'s':''} depuis le Pipeline !`,'ok');
-      }
+      const merged=data.jobs.filter(j=>j.id).map(j=>{const loc=local.find(l=>l.id===j.id)||{};return {...loc,...j};});
+      const mergedIds=new Set(merged.map(j=>j.id));
+      const localOnly=local.filter(j=>!mergedIds.has(j.id));
+      DB.set('jobs',[...merged,...localOnly]);
+      if(currentPanel==='jobs') renderJobs();
+      updateSyncTime_();
     }
   } catch(e){ /* silent */ }
   // Chantiers depuis Pipeline (onglet Chantiers — source de vérité Pipeline)
@@ -2358,24 +2356,21 @@ async function autoSyncJobs(){
     const cd=await cr.json();
     if(cd.status==='ok'&&Array.isArray(cd.data)&&cd.data.length){
       const local=DB.get('jobs');
-      const localIds=new Set(local.map(j=>j.id));
-      const newJobs=cd.data
-        .filter(r=>r.ID_Chantier&&r.Nom_Chantier&&!localIds.has(r.ID_Chantier))
-        .map(r=>({
-          id:r.ID_Chantier, name:r.Nom_Chantier||'',
-          client:r.Client_ID||'', address:r.Adresse||'',
-          status:mapSt(r.Statut), start:r['Date_Début']||'',
-          end:r['Date_Fin_Prévue']||'', budget:parseFloat(r.Budget)||0,
-          foreman:r['Contremaître_ID']||'', notes:r.Notes||'',
-          driveId:r.Drive_ID||'', driveUrl:r.Drive_URL||'',
-          isFixedLocation:false, fixedTeam:''
-        }));
-      if(newJobs.length){
-        DB.set('jobs',[...DB.get('jobs'),...newJobs]);
-        renderJobs();
-        updateSyncTime_();
-        toast(`📥 ${newJobs.length} chantier${newJobs.length>1?'s':''} Pipeline importé${newJobs.length>1?'s':''} ✓`,'ok');
-      }
+      const fromSheet=cd.data.filter(r=>r.ID_Chantier&&r.Nom_Chantier).map(r=>({
+        id:r.ID_Chantier, name:r.Nom_Chantier||'',
+        client:r.Client_ID||'', address:r.Adresse||'',
+        status:mapSt(r.Statut), start:r['Date_Début']||'',
+        end:r['Date_Fin_Prévue']||'', budget:parseFloat(r.Budget)||0,
+        foreman:r['Contremaître_ID']||'', notes:r.Notes||'',
+        driveId:r.Drive_ID||'', driveUrl:r.Drive_URL||'',
+        isFixedLocation:false, fixedTeam:''
+      }));
+      const merged=fromSheet.map(j=>{const loc=local.find(l=>l.id===j.id)||{};return {...loc,...j};});
+      const mergedIds=new Set(merged.map(j=>j.id));
+      const localOnly=local.filter(j=>!mergedIds.has(j.id));
+      DB.set('jobs',[...merged,...localOnly]);
+      if(currentPanel==='jobs') renderJobs();
+      updateSyncTime_();
     }
   } catch(e){ /* silent */ }
   // Employés
