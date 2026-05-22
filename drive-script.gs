@@ -370,52 +370,38 @@ function createPunchReport(data) {
   var dateStr = data.date || Utilities.formatDate(new Date(), 'America/Toronto', 'yyyy-MM-dd');
   var docName = 'Heures_' + prenom + '_' + dateStr + '_' + (data.jobId || 'CHANTIER');
 
-  // 3. Créer le Google Doc
-  var doc    = DocumentApp.create(docName);
-  var docId  = doc.getId();
-  var docFile = DriveApp.getFileById(docId);
-  heuresFolder.addFile(docFile);
-  DriveApp.getRootFolder().removeFile(docFile);
+  // 3. Créer le Google Sheet (SpreadsheetApp — déjà autorisé, pas besoin de DocumentApp)
+  var ss    = SpreadsheetApp.create(docName);
+  var sheet = ss.getActiveSheet();
+  sheet.setName('Rapport');
 
-  // 4. Rédiger le contenu
-  var body = doc.getBody();
-  body.clear();
+  sheet.getRange(1, 1, 1, 2).merge().setValue('Rapport de Temps — Heuréka Construction');
+  sheet.getRange(1, 1).setFontSize(14).setFontWeight('bold').setBackground('#0a1628').setFontColor('#D4AF37');
 
-  var title = body.appendParagraph('Rapport de Temps — Heuréka Construction');
-  title.setHeading(DocumentApp.ParagraphHeading.HEADING1);
-  body.appendParagraph('');
+  var rows = [
+    ['Employé',       data.empName  || ''],
+    ['Date',          dateStr],
+    ['Chantier',      (data.jobName || '') + (data.jobId ? '  (' + data.jobId + ')' : '')],
+    ['Punch In',      data.punchIn  || ''],
+    ['Punch Out',     data.punchOut || ''],
+    ['Heures nettes', (data.heures  || '') + ' h'],
+  ];
+  if (data.pauseMin) rows.push(['Pauses (min)', data.pauseMin]);
+  if (data.notes)    rows.push(['Notes', data.notes]);
+  if (data.rapport && data.rapport.travaux)   rows.push(['Travaux',    data.rapport.travaux]);
+  if (data.rapport && data.rapport.problemes) rows.push(['Problèmes',  data.rapport.problemes]);
+  if (data.rapport && data.rapport.materiaux) rows.push(['Matériaux',  data.rapport.materiaux]);
 
-  body.appendParagraph('Employé  : ' + (data.empName  || ''));
-  body.appendParagraph('Date     : ' + dateStr);
-  body.appendParagraph('Chantier : ' + (data.jobName  || '') + (data.jobId ? '  (' + data.jobId + ')' : ''));
-  body.appendParagraph('');
+  sheet.getRange(2, 1, rows.length, 2).setValues(rows);
+  sheet.getRange(2, 1, rows.length, 1).setFontWeight('bold').setBackground('#1a1a2e').setFontColor('#D4AF37');
+  sheet.autoResizeColumns(1, 2);
 
-  body.appendParagraph('Punch In     : ' + (data.punchIn  || ''));
-  body.appendParagraph('Punch Out    : ' + (data.punchOut || ''));
-  body.appendParagraph('Heures nettes: ' + (data.heures   || '') + ' h');
-  if (data.pauseMin) {
-    body.appendParagraph('Pauses       : ' + data.pauseMin + ' min');
-  }
-  body.appendParagraph('');
+  // Déplacer vers le dossier Heures
+  var ssFile = DriveApp.getFileById(ss.getId());
+  heuresFolder.addFile(ssFile);
+  try { DriveApp.getRootFolder().removeFile(ssFile); } catch(e) {}
 
-  if (data.notes) {
-    body.appendParagraph('Notes : ' + data.notes);
-    body.appendParagraph('');
-  }
-
-  if (data.rapport) {
-    var h2 = body.appendParagraph('Rapport de fin de journée');
-    h2.setHeading(DocumentApp.ParagraphHeading.HEADING2);
-    if (data.rapport.travaux)    body.appendParagraph('Travaux effectués : ' + data.rapport.travaux);
-    if (data.rapport.problemes)  body.appendParagraph('Problèmes         : ' + data.rapport.problemes);
-    if (data.rapport.materiaux)  body.appendParagraph('Matériaux         : ' + data.rapport.materiaux);
-    body.appendParagraph('');
-  }
-
-  doc.saveAndClose();
-
-  var docUrl = 'https://docs.google.com/document/d/' + docId;
-  return { status: 'ok', docId: docId, docUrl: docUrl, docName: docName };
+  return { status: 'ok', docId: ss.getId(), docUrl: ss.getUrl(), docName: docName };
 }
 
 function handlePunchReport(data) {
@@ -634,23 +620,7 @@ function createWeeklyReport(data) {
     }
   }
 
-  // 2. Créer le doc (toujours dans Mon Drive d'abord)
-  var docName = 'Heures_Semaine_' + (data.weekStart||'') + '_' + (data.jobName||data.jobId||'CHANTIER');
-  var doc = DocumentApp.create(docName);
-  var docId = doc.getId();
-
-  var body = doc.getBody();
-  body.clear();
-
-  var titleP = body.appendParagraph('Rapport d\'heures hebdomadaire — Heuréka Construction');
-  titleP.setHeading(DocumentApp.ParagraphHeading.HEADING1);
-  body.appendParagraph('');
-  body.appendParagraph('Chantier : ' + (data.jobName || ''));
-  body.appendParagraph('Semaine  : ' + (data.weekStart||'') + ' au ' + (data.weekEnd||''));
-  body.appendParagraph('Approuvé le : ' + Utilities.formatDate(new Date(),'America/Toronto','yyyy-MM-dd HH:mm'));
-  body.appendParagraph('');
-
-  // Grouper par employé, colonnes = dates uniques triées
+  // 2. Grouper par employé, colonnes = dates uniques triées
   var empMap = {}, allDates = [];
   (data.punches||[]).forEach(function(p) {
     var key = p.empId || p.empName;
@@ -661,68 +631,73 @@ function createWeeklyReport(data) {
     if (allDates.indexOf(p.date) < 0) allDates.push(p.date);
   });
   allDates.sort();
-
   var empKeys = Object.keys(empMap);
-  var numRows = empKeys.length + 2; // header + lignes + total
-  var numCols = allDates.length + 2; // Nom + dates + Total
-  var table = body.appendTable();
+  var numCols = allDates.length + 2;
 
-  // En-tête
-  var hRow = table.appendTableRow();
-  var hCell0 = hRow.appendTableCell('Employé');
-  hCell0.setBackgroundColor('#D4AF37');
-  allDates.forEach(function(d) {
-    var c = hRow.appendTableCell(d.slice(5).replace('-','/'));
-    c.setBackgroundColor('#D4AF37');
-  });
-  var hCellT = hRow.appendTableCell('Total');
-  hCellT.setBackgroundColor('#D4AF37');
+  // Créer le Google Sheet (SpreadsheetApp — déjà autorisé, pas besoin de DocumentApp)
+  var ssName = 'Heures_Semaine_' + (data.weekStart||'') + '_' + (data.jobName||data.jobId||'CHANTIER');
+  var ss    = SpreadsheetApp.create(ssName);
+  var sheet = ss.getActiveSheet();
+  sheet.setName('Heures');
+
+  // Titre
+  sheet.getRange(1, 1, 1, numCols).merge().setValue('Rapport d\'heures hebdomadaire — Heuréka Construction');
+  sheet.getRange(1, 1).setFontSize(14).setFontWeight('bold').setBackground('#0a1628').setFontColor('#D4AF37');
+
+  // Infos
+  sheet.getRange(2, 1).setValue('Chantier').setFontWeight('bold');  sheet.getRange(2, 2).setValue(data.jobName || '');
+  sheet.getRange(3, 1).setValue('Semaine').setFontWeight('bold');   sheet.getRange(3, 2).setValue((data.weekStart||'') + ' au ' + (data.weekEnd||''));
+  sheet.getRange(4, 1).setValue('Approuvé le').setFontWeight('bold'); sheet.getRange(4, 2).setValue(Utilities.formatDate(new Date(),'America/Toronto','yyyy-MM-dd HH:mm'));
+
+  // En-tête tableau (ligne 6)
+  var headerVals = [['Employé'].concat(allDates.map(function(d){ return d.slice(5).replace('-','/'); })).concat(['Total (h)'])];
+  sheet.getRange(6, 1, 1, numCols).setValues(headerVals);
+  sheet.getRange(6, 1, 1, numCols).setBackground('#D4AF37').setFontWeight('bold').setFontColor('#000000');
 
   // Lignes employés
   var dayTotals = {}, grandTotal = 0;
-  allDates.forEach(function(d){ dayTotals[d]=0; });
+  allDates.forEach(function(d){ dayTotals[d] = 0; });
 
-  empKeys.forEach(function(key) {
+  var dataRows = empKeys.map(function(key) {
     var emp = empMap[key];
-    var row = table.appendTableRow();
-    row.appendTableCell(emp.name);
+    var row = [emp.name];
     allDates.forEach(function(d) {
       var hrs = emp.days[d] || 0;
       dayTotals[d] += hrs;
-      row.appendTableCell(hrs > 0 ? hrs.toFixed(2)+'h' : '—');
+      row.push(hrs > 0 ? hrs.toFixed(2) : '');
     });
-    row.appendTableCell(emp.total.toFixed(2)+'h');
+    row.push(emp.total.toFixed(2));
     grandTotal += emp.total;
+    return row;
   });
+  if (dataRows.length > 0) {
+    sheet.getRange(7, 1, dataRows.length, numCols).setValues(dataRows);
+  }
 
   // Ligne total
-  var tRow = table.appendTableRow();
-  var tCell0 = tRow.appendTableCell('TOTAL');
-  tCell0.setBackgroundColor('#f0f0f0');
-  allDates.forEach(function(d) {
-    var c = tRow.appendTableCell(dayTotals[d]>0?dayTotals[d].toFixed(2)+'h':'—');
-    c.setBackgroundColor('#f0f0f0');
-  });
-  var tCellT = tRow.appendTableCell(grandTotal.toFixed(2)+'h');
-  tCellT.setBackgroundColor('#f0f0f0');
+  var totalRow = ['TOTAL'];
+  allDates.forEach(function(d){ totalRow.push(dayTotals[d] > 0 ? dayTotals[d].toFixed(2) : ''); });
+  totalRow.push(grandTotal.toFixed(2));
+  var totalRowIdx = 7 + dataRows.length;
+  sheet.getRange(totalRowIdx, 1, 1, numCols).setValues([totalRow]);
+  sheet.getRange(totalRowIdx, 1, 1, numCols).setFontWeight('bold').setBackground('#f5f5f5');
+  sheet.autoResizeColumns(1, numCols);
 
-  doc.saveAndClose();
-
-  // 3. Déplacer vers le dossier cible si disponible, sinon reste dans Mon Drive
+  // 3. Déplacer vers le dossier Heures du chantier dans Drive
+  var ssId = ss.getId();
   var inFolder = 'Mon Drive (aucun dossier chantier lié)';
   if (heuresFolder) {
     try {
-      var docFile = DriveApp.getFileById(docId);
-      heuresFolder.addFile(docFile);
-      try { DriveApp.getRootFolder().removeFile(docFile); } catch(e) {}
+      var ssFile = DriveApp.getFileById(ssId);
+      heuresFolder.addFile(ssFile);
+      try { DriveApp.getRootFolder().removeFile(ssFile); } catch(e) {}
       inFolder = heuresFolder.getName();
     } catch(e) {
       Logger.log('Déplacement Drive: ' + e);
     }
   }
 
-  var docUrl = 'https://docs.google.com/document/d/' + docId;
-  return { docId:docId, docUrl:docUrl, docName:docName, inFolder:inFolder, newDriveId:newDriveId, newDriveUrl:newDriveUrl };
+  return { docId:ssId, docUrl:ss.getUrl(), docName:ssName, inFolder:inFolder, newDriveId:newDriveId, newDriveUrl:newDriveUrl };
 }
 
 function handleApproveWeekPunchs(data) {
