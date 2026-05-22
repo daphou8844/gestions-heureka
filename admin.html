@@ -328,7 +328,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
       <span class="nav-ico">📅</span> Planning
     </div>
     <div class="nav-item" data-panel="horaires" onclick="nav('horaires')">
-      <span class="nav-ico">📤</span> Envoyer Horaires
+      <span class="nav-ico">📋</span> Historique
     </div>
     <div class="nav-item" data-panel="punchs" onclick="nav('punchs')">
       <span class="nav-ico">⏱</span> Punchs
@@ -437,8 +437,8 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
     <!-- ====== PLANNING ====== -->
     <div id="panel-planning" class="panel">
       <div class="sec-hd">
-        <div><div class="sec-title">Planning</div><div class="sec-sub">Calendrier hebdomadaire des employés</div></div>
-        <button class="btn btn-gold" onclick="openModal('modal-shift')">+ Ajouter quart</button>
+        <div><div class="sec-title">Planning</div><div class="sec-sub">Planifier les employés sur les chantiers</div></div>
+        <button class="btn btn-gold" onclick="openModal('modal-shift')">Planifier</button>
       </div>
       <div class="plan-nav">
         <div style="display:flex;gap:3px;background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--rad2);padding:3px;flex-shrink:0">
@@ -455,104 +455,23 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
       </div>
     </div>
 
-    <!-- ====== HORAIRES ====== -->
+    <!-- ====== HISTORIQUE ====== -->
     <div id="panel-horaires" class="panel">
       <div class="sec-hd">
-        <div><div class="sec-title">Envoyer Horaires</div><div class="sec-sub">Créer et publier les horaires</div></div>
+        <div><div class="sec-title">Historique</div><div class="sec-sub">Entrées planifiées — SMS envoyés via l'app Horaires</div></div>
+        <button class="btn btn-outline btn-sm" onclick="renderHistorique()">↻ Actualiser</button>
       </div>
-      <div class="g2" style="align-items:start">
-
-        <!-- FORMULAIRE -->
-        <div class="card" style="display:flex;flex-direction:column">
-
-          <!-- Titre -->
-          <div style="font-size:15px;font-weight:800;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--bdr)">Nouvel Horaire</div>
-
-          <!-- Équipe Bureau -->
-          <div class="hor-team-hdr">
-            <span class="hor-team-ico">🏢</span>
-            <div>
-              <div class="hor-team-title">Équipe Bureau</div>
-              <div class="hor-team-sub">📍 Bureau Heureka assigné automatiquement</div>
-            </div>
+      <div class="card">
+        <div class="card-hd">
+          <div>
+            <div class="card-title">Planifications</div>
+            <div class="card-sub">À envoyer et récentes en haut · Passées en bas</div>
           </div>
-          <div id="hor-emp-bureau" class="hor-emp-grid"></div>
-
-          <!-- Équipe Chantier -->
-          <div class="hor-team-hdr">
-            <span class="hor-team-ico">🏗</span>
-            <div>
-              <div class="hor-team-title">Équipe Chantier</div>
-              <div class="hor-team-sub">Shop Heureka · Chantiers actifs</div>
-            </div>
-          </div>
-          <div id="hor-emp-chantier" class="hor-emp-grid"></div>
-
-          <!-- Sélection chantier (Équipe Chantier seulement) -->
-          <div class="fg" id="hor-job-wrap" style="display:none">
-            <label>Chantier</label>
-            <select id="hor-job"></select>
-          </div>
-
-          <!-- Date + Début + Fin sur la même ligne -->
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
-            <div class="fg" style="margin:0"><label>Date</label><input type="date" id="hor-date"></div>
-            <div class="fg" style="margin:0"><label>Début</label><input type="time" id="hor-start" value="07:00"></div>
-            <div class="fg" style="margin:0"><label>Fin</label><input type="time" id="hor-end" value="16:00"></div>
-          </div>
-
-          <!-- Répétition -->
-          <div class="fg">
-            <label>Répétition</label>
-            <div class="hor-radio-row">
-              <div class="hor-radio-opt" style="position:relative">
-                <input type="radio" id="hor-rep-once" name="hor-repeat" value="once" checked onchange="onHorRepeatChange()">
-                <label for="hor-rep-once">Une seule fois</label>
-              </div>
-              <div class="hor-radio-opt" style="position:relative">
-                <input type="radio" id="hor-rep-days" name="hor-repeat" value="repeat" onchange="onHorRepeatChange()">
-                <label for="hor-rep-days">Jours spécifiques</label>
-              </div>
-            </div>
-          </div>
-
-          <!-- Wrap jours + date fin -->
-          <div id="hor-repeat-wrap" style="display:none;flex-direction:column;gap:14px;padding:14px;background:var(--bg2);border-radius:var(--rad2);border:1px solid var(--bdr);margin-bottom:14px">
-            <div>
-              <div style="font-size:10px;color:var(--txt2);font-weight:700;letter-spacing:.8px;margin-bottom:10px">JOURS DE RÉPÉTITION</div>
-              <div style="display:flex;gap:6px">
-                <label class="day-tog"><input type="checkbox" name="hor-day" value="1" style="display:none"> Lun</label>
-                <label class="day-tog"><input type="checkbox" name="hor-day" value="2" style="display:none"> Mar</label>
-                <label class="day-tog"><input type="checkbox" name="hor-day" value="3" style="display:none"> Mer</label>
-                <label class="day-tog"><input type="checkbox" name="hor-day" value="4" style="display:none"> Jeu</label>
-                <label class="day-tog"><input type="checkbox" name="hor-day" value="5" style="display:none"> Ven</label>
-              </div>
-            </div>
-            <div class="fg" style="margin:0">
-              <label>Date de fin <span style="color:var(--txt2);font-size:10px;font-weight:400;text-transform:none;letter-spacing:0">(vide = 13 semaines)</span></label>
-              <input type="date" id="hor-repeat-end">
-            </div>
-          </div>
-
-          <!-- Note -->
-          <div class="fg"><label>Note (optionnel)</label><textarea id="hor-note" placeholder="Instructions spéciales pour l'équipe..." style="min-height:60px"></textarea></div>
-
-          <!-- Bouton Envoyer -->
-          <button class="btn btn-gold" style="width:100%;padding:15px;font-size:15px;font-weight:800;justify-content:center;letter-spacing:.4px;border-radius:var(--rad2);margin-top:4px" onclick="sendHoraire()">📤 Envoyer l'horaire</button>
+          <span class="badge b-gold" id="hist-count">0</span>
         </div>
-
-        <!-- LISTE ENVOYÉS -->
-        <div class="card">
-          <div class="card-hd">
-            <div>
-              <div class="card-title">Horaires Envoyés</div>
-              <div class="card-sub">Historique des envois</div>
-            </div>
-            <span class="badge b-gold" id="hor-count">0</span>
-          </div>
-          <div id="hor-list" style="display:flex;flex-direction:column;gap:10px;max-height:600px;overflow-y:auto"></div>
+        <div id="hist-list" style="display:flex;flex-direction:column;gap:8px;max-height:70vh;overflow-y:auto">
+          <div style="text-align:center;padding:32px;color:var(--txt2)">Chargement...</div>
         </div>
-
       </div>
     </div>
 
@@ -797,17 +716,20 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
   </div>
 </div>
 
-<!-- Modal Quart Planning -->
+<!-- Modal Planifier -->
 <div class="overlay" id="modal-shift">
   <div class="modal">
     <div class="m-hd">
-      <span class="m-title" id="shift-modal-title">Ajouter un quart</span>
+      <span class="m-title">Planifier un horaire</span>
       <button class="m-close" onclick="closeModal('modal-shift')">✕</button>
     </div>
     <div class="m-body">
       <input type="hidden" id="shift-edit-id">
-      <div class="fg"><label>Employé</label><select id="shift-emp" onchange="onShiftEmpChange()"></select></div>
-      <div class="fg"><label>Chantier / Lieu</label><select id="shift-job"></select></div>
+      <div class="fg"><label>Chantier</label><select id="shift-job" onchange="onPlanChanChange()"></select></div>
+      <div class="fg">
+        <label>Employés</label>
+        <div id="plan-emp-grid" class="hor-emp-grid" style="margin-top:4px"></div>
+      </div>
       <div class="fg"><label>Date</label><input type="date" id="shift-date"></div>
       <div class="fgrid">
         <div class="fg"><label>Début</label><input type="time" id="shift-start" value="07:00"></div>
@@ -840,11 +762,12 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
           <input type="date" id="shift-repeat-end">
         </div>
       </div>
+      <div class="fg"><label>Note (optionnel)</label><textarea id="shift-note" placeholder="Instructions spéciales pour l'équipe..." style="min-height:52px"></textarea></div>
     </div>
     <div class="m-foot">
       <button class="btn btn-outline" onclick="closeModal('modal-shift')">Annuler</button>
       <button id="shift-delete-btn" class="btn" style="display:none;background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.3)" onclick="deleteShift()">🗑 Supprimer</button>
-      <button class="btn btn-gold" onclick="saveShift()">Enregistrer</button>
+      <button class="btn btn-gold" onclick="savePlanning()">Planifier</button>
     </div>
   </div>
 </div>
@@ -1038,15 +961,15 @@ let currentPanel = 'dashboard';
 const headers = {
   dashboard:{title:'Dashboard',sub:'Vue d\'ensemble de l\'entreprise'},
   jobs:{title:'Chantiers',sub:'Gérer vos projets de construction'},
-  planning:{title:'Planning',sub:'Calendrier hebdomadaire des employés'},
-  horaires:{title:'Envoyer Horaires',sub:'Créer et publier les horaires aux employés'},
+  planning:{title:'Planning',sub:'Planifier les employés sur les chantiers'},
+  horaires:{title:'Historique',sub:'Entrées planifiées et SMS envoyés'},
   live:{title:'Vue Live',sub:'Statut en temps réel des employés'},
   punchs:{title:'Punchs',sub:'Historique complet des pointages'},
   paie:{title:'Paie',sub:'Calcul et export de la masse salariale'},
   equipe:{title:'Gestion Équipe',sub:'Gérer vos employés'},
 };
 const topbarBtns = {
-  dashboard:null, jobs:'+ Chantier', planning:'+ Quart', horaires:null,
+  dashboard:null, jobs:'+ Chantier', planning:'Planifier', horaires:null,
   live:null, punchs:'+ Punch Manuel', paie:null, equipe:'+ Employé'
 };
 function nav(p) {
@@ -1064,12 +987,12 @@ function nav(p) {
   renderPanel(p);
 }
 function topbarAction() {
-  const map={jobs:'modal-job',planning:'modal-shift',punchs:'modal-punch',equipe:'modal-emp'};
+  const map={jobs:'modal-job',planning:'modal-shift',punchs:'modal-punch',equipe:'modal-emp',horaires:null};
   if(map[currentPanel]) openModal(map[currentPanel]);
 }
 function renderPanel(p) {
   const r={dashboard:renderDashboard,jobs:renderJobs,planning:renderPlanning,
-    horaires:renderHoraires,live:renderLive,punchs:renderPunchs,paie:renderPaie,equipe:renderEquipe};
+    horaires:renderHistorique,live:renderLive,punchs:renderPunchs,paie:renderPaie,equipe:renderEquipe};
   if(r[p]) r[p]();
 }
 
@@ -1328,15 +1251,16 @@ function openModal(id) {
   }
   if(id==='modal-shift') {
     document.getElementById('shift-edit-id').value='';
-    document.getElementById('shift-modal-title').textContent='Ajouter un quart';
     document.getElementById('shift-delete-btn').style.display='none';
     document.getElementById('shift-date').value=today();
     document.querySelector('input[name="shift-repeat"][value="once"]').checked=true;
     document.querySelectorAll('input[name="shift-day"]').forEach(c=>c.checked=false);
     document.getElementById('shift-repeat-end').value='';
+    document.getElementById('shift-note').value='';
     onShiftRepeatChange();
-    populateSelect('shift-emp',DB.get('employees').filter(e=>e.active==='1'||e.active===1),'id',empFullName,'');
-    onShiftEmpChange();
+    const jobs=DB.get('jobs').filter(j=>j.status==='actif'&&!j.isFixedLocation);
+    populateSelect('shift-job',jobs,'id',j=>j.name,'Sélectionner un chantier...');
+    onPlanChanChange();
   }
   if(id==='modal-settings') {
     const cfg=DB.cfg();
@@ -1508,7 +1432,6 @@ function renderPlanningMonth() {
 }
 function openShiftCell(empId, date) {
   document.getElementById('shift-edit-id').value='';
-  document.getElementById('shift-modal-title').textContent='Ajouter un quart';
   document.getElementById('shift-delete-btn').style.display='none';
   openModal('modal-shift');
   document.getElementById('shift-date').value=date;
@@ -1520,17 +1443,15 @@ function openShiftEdit(id) {
   const s=DB.get('shifts').find(x=>x.id===id);
   if(!s) return;
   document.getElementById('shift-edit-id').value=id;
-  document.getElementById('shift-modal-title').textContent='Modifier / Supprimer ce quart';
   document.getElementById('shift-delete-btn').style.display='';
   document.getElementById('shift-date').value=s.date;
-  document.getElementById('shift-start').value=s.start;
-  document.getElementById('shift-end').value=s.end;
+  document.getElementById('shift-start').value=s.start||'07:00';
+  document.getElementById('shift-end').value=s.end||'16:00';
   document.querySelector('input[name="shift-repeat"][value="once"]').checked=true;
   document.getElementById('shift-repeat-wrap').style.display='none';
-  populateSelect('shift-emp',DB.get('employees').filter(e=>e.active==='1'||e.active===1),'id',empFullName,'');
-  document.getElementById('shift-emp').value=s.empId;
-  onShiftEmpChange();
-  setTimeout(()=>{ document.getElementById('shift-job').value=s.jobId; },50);
+  const jobs=DB.get('jobs').filter(j=>j.status==='actif'&&!j.isFixedLocation);
+  populateSelect('shift-job',jobs,'id',j=>j.name,'');
+  setTimeout(()=>{ document.getElementById('shift-job').value=s.jobId; onPlanChanChange(); },50);
   openModal('modal-shift');
 }
 
@@ -1544,267 +1465,157 @@ function _sheetPost(payload) {
   fetch(url, { method:'POST', body:JSON.stringify(payload), redirect:'follow' }).catch(()=>{});
 }
 function deleteShift() {
-  if(!confirm('Supprimer ce quart du planning ?')) return;
+  if(!confirm('Supprimer cette planification ?')) return;
   const id=document.getElementById('shift-edit-id').value;
   const s=DB.get('shifts').find(x=>x.id===id);
   DB.set('shifts',DB.get('shifts').filter(s=>s.id!==id));
   if(s&&s.planningId) _deletePlanningFromSheet(s.planningId);
   closeModal('modal-shift');
   renderPlanning();
-  toast('Quart supprimé ✓','ok');
+  toast('Planification supprimée ✓','ok');
 }
 function quickDeleteShift(id) {
-  if(!id||!confirm('Supprimer ce quart ?')) return;
+  if(!id||!confirm('Supprimer cette planification ?')) return;
   const s=DB.get('shifts').find(x=>x.id===id);
   DB.set('shifts',DB.get('shifts').filter(x=>x.id!==id));
   if(s&&s.planningId) _deletePlanningFromSheet(s.planningId);
   renderPlanning();
-  toast('Quart supprimé ✓','ok');
+  toast('Planification supprimée ✓','ok');
 }
-function onShiftEmpChange() {
-  const empId=document.getElementById('shift-emp').value;
-  const emp=getEmp(empId);
-  const teamType=emp.teamType||'chantier';
-  const allJobs=DB.get('jobs').filter(j=>j.status==='actif');
-  const sel=document.getElementById('shift-job');
-  if(teamType==='bureau') {
-    const opts=allJobs.filter(j=>j.isFixedLocation&&j.fixedTeam==='bureau');
-    sel.innerHTML=opts.length?opts.map(j=>`<option value="${j.id}">${j.name}</option>`).join(''):'<option value="">Aucun lieu bureau configuré</option>';
-  } else {
-    const fixed=allJobs.filter(j=>j.isFixedLocation&&j.fixedTeam==='chantier');
-    const normal=allJobs.filter(j=>!j.isFixedLocation);
-    const opts=[...fixed,...normal];
-    sel.innerHTML=opts.length?opts.map(j=>`<option value="${j.id}">${j.name}</option>`).join(''):'<option value="">Aucun chantier actif</option>';
-  }
-}
-function getShiftJobName_(jobId) {
-  if(jobId==='BUREAU_HEUREKA') return 'Bureau Heureka';
-  if(jobId==='SHOP_HEUREKA') return 'Shop Heureka';
-  const j=getJob(jobId);
-  return j?j.name:jobId||'—';
+function onPlanChanChange() {
+  const jobId=document.getElementById('shift-job').value;
+  const job=getJob(jobId);
+  const isFixed=job&&job.isFixedLocation;
+  const teamType=isFixed?(job.fixedTeam||'chantier'):null;
+  const emps=DB.get('employees').filter(e=>e.active==='1'||e.active===1);
+  const filtered=teamType?emps.filter(e=>e.teamType===teamType):emps.filter(e=>e.teamType!=='bureau');
+  const grid=document.getElementById('plan-emp-grid');
+  if(!grid)return;
+  grid.innerHTML=filtered.length
+    ?filtered.map(e=>`<div class="hor-emp-card" onclick="toggleHorEmp(this,'${e.id}')">
+        <input type="checkbox" name="plan-emp" value="${e.id}" style="display:none">
+        <div class="ec-av ${avColor(e.fname)}" style="color:${avTextColor(e.fname)}">${initials(empFullName(e))}</div>
+        <div style="min-width:0"><div class="ec-name">${empFullName(e)}</div><div class="ec-role">${e.role}</div></div>
+      </div>`).join('')
+    :'<div style="color:var(--txt2);font-size:12px;padding:8px;grid-column:1/-1">Aucun employé disponible</div>';
 }
 function onShiftRepeatChange() {
   const isRepeat=document.querySelector('input[name="shift-repeat"]:checked').value==='repeat';
   document.getElementById('shift-repeat-wrap').style.display=isRepeat?'flex':'none';
 }
-function saveShift() {
-  const base={
-    empId:document.getElementById('shift-emp').value,
-    jobId:document.getElementById('shift-job').value,
-    date:document.getElementById('shift-date').value,
-    start:document.getElementById('shift-start').value,
-    end:document.getElementById('shift-end').value
-  };
-  if(!base.empId||!base.jobId||!base.date){toast('Champs requis manquants','err');return;}
+function savePlanning() {
+  const jobId=document.getElementById('shift-job').value;
+  if(!jobId){toast('Sélectionner un chantier','err');return;}
+  const empIds=[...document.querySelectorAll('input[name="plan-emp"]:checked')].map(c=>c.value);
+  if(!empIds.length){toast('Sélectionner au moins un employé','err');return;}
+  const date=document.getElementById('shift-date').value;
+  const start=document.getElementById('shift-start').value;
+  const end=document.getElementById('shift-end').value;
+  const note=document.getElementById('shift-note').value.trim();
+  if(!date){toast('Choisir une date','err');return;}
   const isRepeat=document.querySelector('input[name="shift-repeat"]:checked').value==='repeat';
-  const shifts=DB.get('shifts');
-  if(!isRepeat) {
-    const s={...base,id:document.getElementById('shift-edit-id').value||uid()};
-    const idx=shifts.findIndex(x=>x.id===s.id);
-    if(idx>=0) shifts[idx]=s; else shifts.push(s);
-    DB.set('shifts',shifts);
-    closeModal('modal-shift');
-    renderPlanning();
-    toast('Quart enregistré ✓','ok');
-    return;
-  }
-  const days=[...document.querySelectorAll('input[name="shift-day"]:checked')].map(c=>parseInt(c.value));
-  if(!days.length){toast('Cochez au moins un jour','err');return;}
-  const endStr=document.getElementById('shift-repeat-end').value;
-  const [sy,sm,sd]=base.date.split('-').map(Number);
-  const startD=new Date(sy,sm-1,sd);
-  let endD;
-  if(endStr){const[ey,em,ed]=endStr.split('-').map(Number);endD=new Date(ey,em-1,ed);}
-  else{endD=new Date(sy,sm-1,sd+13*7);}
-  let count=0;
-  const cur=new Date(startD);
-  while(cur<=endD && count<500){
-    const dow=cur.getDay(); // 0=Sun,1=Mon...5=Fri
-    if(days.includes(dow)){
-      const iso=isoDate(cur);
-      const dup=shifts.some(x=>x.empId===base.empId&&x.jobId===base.jobId&&x.date===iso&&x.start===base.start);
-      if(!dup){shifts.push({...base,id:uid(),date:iso});count++;}
-    }
-    cur.setDate(cur.getDate()+1);
-  }
-  DB.set('shifts',shifts);
-  closeModal('modal-shift');
-  renderPlanning();
-  toast(`${count} quart${count>1?'s':''} créé${count>1?'s':''} ✓`,'ok');
-}
-
-// =====================================================
-//  HORAIRES
-// =====================================================
-function _horEmpCard(e) {
-  const c=avColor(e.fname), col=avTextColor(e.fname);
-  return `<div class="hor-emp-card" onclick="toggleHorEmp(this,'${e.id}')">
-    <input type="checkbox" name="hor-emp" value="${e.id}" style="display:none">
-    <div class="ec-av ${c}" style="color:${col}">${initials(empFullName(e))}</div>
-    <div style="min-width:0">
-      <div class="ec-name">${empFullName(e)}</div>
-      <div class="ec-role">${e.role}</div>
-    </div>
-  </div>`;
-}
-function toggleHorEmp(card, empId) {
-  card.classList.toggle('hec-sel');
-  const cb=card.querySelector('input[type="checkbox"]');
-  if(cb) cb.checked=card.classList.contains('hec-sel');
-  onHorEmpChange();
-}
-async function syncChantiersToHorForm() {
-  try {
-    const url=HEUREKA_CONFIG.APPS_SCRIPT_URL+'?action=getData&sheet=Chantiers';
-    const res=await fetch(url,{redirect:'follow'});
-    const data=await res.json();
-    if(Array.isArray(data)&&data.length){
-      const sheetJobs=data
-        .filter(r=>r.Statut&&r.Statut.toLowerCase()==='actif')
-        .map(r=>({id:r.ID_Chantier,name:r.Nom_Chantier}));
-      const localJobs=DB.get('jobs').filter(j=>j.status==='actif'&&!j.isFixedLocation);
-      const localIds=new Set(localJobs.map(j=>j.id));
-      const merged=[...localJobs,...sheetJobs.filter(j=>!localIds.has(j.id))];
-      const sel=document.getElementById('hor-job');
-      if(sel){
-        const cur=sel.value;
-        populateSelect('hor-job',merged,'id',j=>j.name,'Sélectionner un chantier...');
-        if(cur) sel.value=cur;
-      }
-    }
-  } catch(e){ /* silent */ }
-}
-function renderHoraires() {
-  document.getElementById('hor-date').value=today();
-  document.querySelector('input[name="hor-repeat"][value="once"]').checked=true;
-  document.querySelectorAll('input[name="hor-day"]').forEach(c=>c.checked=false);
-  document.getElementById('hor-repeat-end').value='';
-  onHorRepeatChange();
-  const emps=DB.get('employees').filter(e=>e.active==='1'||e.active===1);
-  const bureauEmps=emps.filter(e=>e.teamType==='bureau');
-  const chantierEmps=emps.filter(e=>e.teamType!=='bureau');
-  const jobs=DB.get('jobs').filter(j=>j.status==='actif'&&!j.isFixedLocation);
-  populateSelect('hor-job',jobs,'id',j=>j.name,'Sélectionner un chantier...');
-  document.getElementById('hor-emp-bureau').innerHTML=bureauEmps.length
-    ?bureauEmps.map(_horEmpCard).join('')
-    :'<div class="hor-empty" style="grid-column:1/-1">Aucun employé Équipe Bureau</div>';
-  document.getElementById('hor-emp-chantier').innerHTML=chantierEmps.length
-    ?chantierEmps.map(_horEmpCard).join('')
-    :'<div class="hor-empty" style="grid-column:1/-1">Aucun employé Équipe Chantier</div>';
-  onHorEmpChange();
-  renderHorairesList();
-  syncChantiersToHorForm();
-}
-function onHorEmpChange() {
-  const checked=[...document.querySelectorAll('input[name="hor-emp"]:checked')].map(c=>c.value);
-  const hasChantier=checked.some(id=>getEmp(id).teamType!=='bureau');
-  document.getElementById('hor-job-wrap').style.display=hasChantier?'':'none';
-}
-function onHorRepeatChange() {
-  const isRepeat=document.querySelector('input[name="hor-repeat"]:checked').value==='repeat';
-  document.getElementById('hor-repeat-wrap').style.display=isRepeat?'flex':'none';
-}
-function renderHorairesList() {
-  const hs=DB.get('horaires').sort((a,b)=>b.date.localeCompare(a.date)||((b.sentAt||'').localeCompare(a.sentAt||'')));
-  document.getElementById('hor-count').textContent=hs.length;
-  document.getElementById('hor-list').innerHTML=hs.length?hs.map(h=>{
-    const jobName=getShiftJobName_(h.jobId);
-    const names=h.empIds.map(id=>getEmp(id).fname).join(', ');
-    const isFixed=DB.get('jobs').find(j=>j.id===h.jobId&&j.isFixedLocation);
-    const jobBadge=isFixed?`<span class="badge b-blue" style="font-size:9px">📍 Lieu fixe</span>`:'';
-    return `<div style="background:var(--bg);border:1px solid var(--bdr);border-radius:var(--rad2);padding:14px;transition:var(--tr)" onmouseenter="this.style.borderColor='var(--bdr2)'" onmouseleave="this.style.borderColor='var(--bdr)'">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-            <div style="font-size:13px;font-weight:800;color:var(--gold)">${jobName}</div>${jobBadge}
-          </div>
-          <div style="font-size:11px;color:var(--txt2)">${fmt(h.date)} · ${h.start}–${h.end}</div>
-          <div style="font-size:12px;margin-top:6px;font-weight:600">${names}</div>
-          <div style="margin-top:8px;font-size:10px;background:var(--bg2);border-radius:6px;padding:7px 10px;color:var(--txt2);border:1px solid var(--bdr);line-height:1.5">
-            <span style="color:var(--gold);font-weight:700">📱 SMS·</span> ${fmt(h.date)} ${h.start}–${h.end} @ ${jobName}${h.note?' · '+h.note:''}
-          </div>
-        </div>
-        <div style="display:flex;gap:6px;flex-direction:column;align-items:flex-end;flex-shrink:0">
-          <span class="badge ${h.sent?'b-green':'b-orange'}">${h.sent?'✓ Envoyé':'Brouillon'}</span>
-          <button class="btn btn-red btn-sm" onclick="deleteHoraire('${h.id}')">🗑</button>
-        </div>
-      </div>
-    </div>`;
-  }).join(''):`<div style="text-align:center;padding:40px 20px">
-    <div style="font-size:32px;margin-bottom:10px">📭</div>
-    <div style="font-size:13px;color:var(--txt2)">Aucun horaire envoyé</div>
-  </div>`;
-}
-function sendHoraire() {
-  const date=document.getElementById('hor-date').value;
-  const start=document.getElementById('hor-start').value;
-  const end=document.getElementById('hor-end').value;
-  const note=document.getElementById('hor-note').value.trim();
-  const allChecked=[...document.querySelectorAll('input[name="hor-emp"]:checked')].map(c=>c.value);
-  if(!date||!start||!end){toast('Remplir date et heures','err');return;}
-  if(!allChecked.length){toast('Sélectionner au moins un employé','err');return;}
-  const bureauIds=allChecked.filter(id=>getEmp(id).teamType==='bureau');
-  const chantierIds=allChecked.filter(id=>getEmp(id).teamType!=='bureau');
-  const chantierJobId=document.getElementById('hor-job').value;
-  if(chantierIds.length&&!chantierJobId){toast('Sélectionner un chantier pour l\'Équipe Chantier','err');return;}
-  const bureauJob=DB.get('jobs').find(j=>j.isFixedLocation&&j.fixedTeam==='bureau');
-  const bureauJobId=bureauJob?bureauJob.id:'__bureau_heureka__';
-  // Générer les dates (simple ou répété)
-  const isRepeat=document.querySelector('input[name="hor-repeat"]:checked').value==='repeat';
   let dates=[date];
   if(isRepeat){
-    const days=[...document.querySelectorAll('input[name="hor-day"]:checked')].map(c=>parseInt(c.value));
+    const days=[...document.querySelectorAll('input[name="shift-day"]:checked')].map(c=>parseInt(c.value));
     if(!days.length){toast('Cochez au moins un jour','err');return;}
-    const endStr=document.getElementById('hor-repeat-end').value;
-    const[sy,sm,sd]=date.split('-').map(Number);
+    const endStr=document.getElementById('shift-repeat-end').value;
+    const [sy,sm,sd]=date.split('-').map(Number);
     const startD=new Date(sy,sm-1,sd);
-    const endD=endStr?(()=>{const[ey,em,ed]=endStr.split('-').map(Number);return new Date(ey,em-1,ed);})():new Date(sy,sm-1,sd+13*7);
+    let endD;
+    if(endStr){const[ey,em,ed]=endStr.split('-').map(Number);endD=new Date(ey,em-1,ed);}
+    else{endD=new Date(sy,sm-1,sd+13*7);}
     dates=[];
     const cur=new Date(startD);
     while(cur<=endD&&dates.length<500){if(days.includes(cur.getDay()))dates.push(isoDate(cur));cur.setDate(cur.getDate()+1);}
     if(!dates.length){toast('Aucun jour correspond','err');return;}
   }
-  const hs=DB.get('horaires'),shifts=DB.get('shifts');
-  let totalH=0;
-  const newShifts=[];
+  const shifts=DB.get('shifts');
+  const horId=uid();
+  const newEntries=[];
   dates.forEach(d=>{
-    if(bureauIds.length){
-      const hId=uid();
-      hs.push({id:hId,jobId:bureauJobId,date:d,start,end,empIds:bureauIds,note,sent:true,sentAt:new Date().toISOString()});
-      bureauIds.forEach(empId=>{const s={id:uid(),empId,jobId:bureauJobId,date:d,start,end,horaireId:hId};shifts.push(s);newShifts.push(s);});
-      totalH++;
-    }
-    if(chantierIds.length){
-      const hId=uid();
-      hs.push({id:hId,jobId:chantierJobId,date:d,start,end,empIds:chantierIds,note,sent:true,sentAt:new Date().toISOString()});
-      chantierIds.forEach(empId=>{const s={id:uid(),empId,jobId:chantierJobId,date:d,start,end,horaireId:hId};shifts.push(s);newShifts.push(s);});
-      totalH++;
-    }
+    empIds.forEach(empId=>{
+      const dup=shifts.some(x=>x.empId===empId&&x.jobId===jobId&&x.date===d);
+      if(!dup){const s={id:uid(),empId,jobId,date:d,start,end,horaireId:horId};shifts.push(s);newEntries.push(s);}
+    });
   });
-  DB.set('horaires',hs); DB.set('shifts',shifts);
-  renderHorairesList();
-  toast(isRepeat?`${totalH} horaire${totalH>1?'s':''} créé${totalH>1?'s':''} (${allChecked.length} emp.) ✓`:`Horaire envoyé à ${allChecked.length} employé${allChecked.length>1?'s':''} ✓`,'ok');
-  syncSheets('horaires');
-  // Sync each shift to Planning onglet in Sheet
-  newShifts.forEach(async s=>{
-    try {
+  DB.set('shifts',shifts);
+  closeModal('modal-shift');
+  renderPlanning();
+  const total=newEntries.length;
+  toast(`${total} entrée${total>1?'s':''} planifiée${total>1?'s':''} ✓`,'ok');
+  newEntries.forEach(async s=>{
+    try{
       const res=await fetch(HEUREKA_CONFIG.APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({
         action:'addRow',sheet:'Planning',
-        data:{Horaire_ID:s.horaireId,Employé_ID:s.empId,Chantier_ID:s.jobId,Date:s.date,Heure_Début:s.start,Heure_Fin:s.end,Note:note}
-      })});
+        data:{Horaire_ID:s.horaireId,Employé_ID:s.empId,Chantier_ID:s.jobId,
+          Date:s.date,Heure_Début:s.start,Heure_Fin:s.end,
+          Note:note,'Horaire_Envoyé':'Non','Horaire_Envoyé_Le':''}
+      }),redirect:'follow'});
       const d=await res.json();
       if(d.status==='ok'&&d.id){
         const all=DB.get('shifts');
         const idx=all.findIndex(x=>x.id===s.id);
         if(idx>=0){all[idx].planningId=d.id;DB.set('shifts',all);}
       }
-    } catch(e){ /* silent */ }
+    }catch(e){/*silent*/}
   });
 }
-function deleteHoraire(id) {
-  DB.set('horaires',DB.get('horaires').filter(h=>h.id!==id));
-  _sheetPost({action:'deleteRow', sheet:'Horaires', id});
-  renderHorairesList(); toast('Horaire supprimé','info');
+
+// =====================================================
+//  HISTORIQUE PLANNING
+// =====================================================
+function toggleHorEmp(card, empId) {
+  card.classList.toggle('hec-sel');
+  const cb=card.querySelector('input[type="checkbox"]');
+  if(cb) cb.checked=card.classList.contains('hec-sel');
+}
+async function renderHistorique() {
+  const el=document.getElementById('hist-list');
+  el.innerHTML='<div style="text-align:center;padding:32px;color:var(--txt2)">⏳ Chargement...</div>';
+  try{
+    const res=await fetch(HEUREKA_CONFIG.APPS_SCRIPT_URL+'?action=getData&sheet=Planning',{redirect:'follow'});
+    const d=await res.json();
+    const items=(d.status==='ok'?(d.data||[]):[]).filter(r=>r.Employé_ID&&r.Chantier_ID);
+    document.getElementById('hist-count').textContent=items.length;
+    if(!items.length){
+      el.innerHTML='<div style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:10px">📋</div><div style="font-size:13px;color:var(--txt2)">Aucune entrée dans le Planning</div></div>';
+      return;
+    }
+    const t=today();
+    items.sort((a,b)=>{
+      const af=a.Date>=t, bf=b.Date>=t;
+      if(af!==bf)return af?-1:1;
+      return b.Date.localeCompare(a.Date);
+    });
+    el.innerHTML=items.map(r=>{
+      const emp=getEmp(r.Employé_ID)||{};
+      const job=getJob(r.Chantier_ID)||{};
+      const sent=r.Horaire_Envoyé==='Oui';
+      const isFuture=r.Date>=t;
+      return`<div style="background:var(--bg);border:1px solid var(--bdr);border-radius:var(--rad2);padding:12px 14px">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:800;color:var(--gold);margin-bottom:3px">${job.name||r.Chantier_ID}</div>
+            <div style="font-size:12px;font-weight:600;margin-bottom:2px">👷 ${empFullName(emp)||r.Employé_ID}</div>
+            <div style="font-size:11px;color:var(--txt2)">📅 ${fmt(r.Date)}${r.Heure_Début&&r.Heure_Fin?' · '+r.Heure_Début+'–'+r.Heure_Fin:''}</div>
+            ${r.Note?`<div style="font-size:11px;color:var(--txt2);margin-top:3px">📝 ${r.Note}</div>`:''}
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
+            <span class="badge ${sent?'b-green':isFuture?'b-blue':'b-gray'}">${sent?'✓ Envoyé':isFuture?'⏳ À envoyer':'⏰ Passé'}</span>
+            <button class="btn btn-red btn-sm" onclick="deletePlanEntry('${r.ID_Planning}')">🗑</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    el.innerHTML='<div style="text-align:center;padding:32px;color:var(--txt2)">⚠ Erreur de chargement</div>';
+  }
+}
+function deletePlanEntry(id) {
+  if(!id||!confirm('Supprimer cette entrée du planning ?'))return;
+  _sheetPost({action:'deleteRow',sheet:'Planning',id});
+  setTimeout(renderHistorique,600);
+  toast('Entrée supprimée ✓','ok');
 }
 
 // =====================================================
@@ -2477,7 +2288,6 @@ const _SI = HEUREKA_CONFIG.SYNC_INTERVAL_MS;
 setInterval(autoSyncPunchs, _SI);
 setTimeout(autoSyncPunchs, 3000);
 setInterval(autoSyncJobs, _SI);
-setInterval(()=>{ if(currentPanel==='horaires') syncChantiersToHorForm(); },_SI);
 
 // =====================================================
 //  DOCUMENTS DRIVE — chantier
