@@ -2437,6 +2437,15 @@ clearDemoData();
 initFixedLocations();
 renderDashboard();
 document.getElementById('topbar-btn').style.display='none';
+
+// ── Sync teamType → Sheet (une seule fois par appareil) ──
+(function syncTeamTypesToSheet(){
+  if(localStorage.getItem('hk_teamtype_synced_v1')) return;
+  const emps=DB.get('employees').filter(e=>e.teamType);
+  if(!emps.length) return;
+  emps.forEach(e=>_sheetPost({action:'saveEmployee',employee:e}));
+  localStorage.setItem('hk_teamtype_synced_v1','1');
+})();
 // ── Sync temps réel punchs depuis le Sheet (30 s) ────────
 async function autoSyncPunchs(){
   try{

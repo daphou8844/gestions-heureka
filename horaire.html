@@ -267,15 +267,9 @@ async function loadData(){
     ]);
     const ed=await er.json(), cd=await cr.json();
     if(ed.status==='ok'&&Array.isArray(ed.employees)){
-      const localEmps=JSON.parse(localStorage.getItem('hk_employees')||'[]');
       employees=ed.employees
-        .filter(r=>r.id&&r.active==='1')
-        .map(r=>{
-          const loc=localEmps.find(e=>e.id===r.id)||{};
-          const teamType=loc.teamType||r.teamType||'chantier';
-          return {id:r.id,prenom:r.fname||'',nom:r.lname||'',role:r.role||'',telephone:r.phone||'',teamType};
-        })
-        .filter(e=>e.teamType!=='bureau');
+        .filter(r=>r.id&&r.active==='1'&&r.teamType!=='bureau')
+        .map(r=>({id:r.id,prenom:r.fname||'',nom:r.lname||'',role:r.role||'',telephone:r.phone||''}));
     }
     if(cd.status==='ok'&&Array.isArray(cd.jobs)){
       chantiers=cd.jobs
