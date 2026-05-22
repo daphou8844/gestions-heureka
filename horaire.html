@@ -28,68 +28,37 @@ body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSys
 .topbar-brand span{display:block;font-size:11px;font-weight:400;color:var(--txt2);letter-spacing:1.5px;text-transform:uppercase;margin-top:1px}
 .topbar-sync{font-size:11px;color:var(--txt2);text-align:right}
 
-/* ── DATE BAR ── */
-.datebar{
-  background:var(--bg2);border-bottom:1px solid var(--bdr);
-  padding:12px 16px;display:flex;align-items:center;gap:10px;
-}
-.date-lbl{font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;flex-shrink:0}
-.date-inp{
-  flex:1;background:var(--bg3);border:1px solid var(--bdr);border-radius:var(--rad2);
-  padding:10px 12px;color:var(--txt);font-size:14px;font-weight:600;
-  outline:none;font-family:inherit;
-}
-.date-inp:focus{border-color:var(--gold)}
-.date-today{
-  background:var(--bg3);border:1px solid rgba(212,175,55,.3);border-radius:var(--rad2);
-  padding:10px 12px;color:var(--gold);font-size:12px;font-weight:700;
-  cursor:pointer;white-space:nowrap;flex-shrink:0;
-}
-
 /* ── CONTENT ── */
 .content{padding:14px 16px}
-.sec-lbl{font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px}
+.sec-lbl{font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
 
-/* ── EMPLOYEE CARD ── */
-.emp-card{
+/* ── SEL CONTROLS ── */
+.sel-controls{display:flex;gap:8px;margin-bottom:12px}
+.sel-btn{background:var(--bg3);border:1px solid var(--bdr);border-radius:var(--rad2);padding:8px 12px;color:var(--txt2);font-size:12px;font-weight:700;cursor:pointer;flex:1;text-align:center;font-family:inherit}
+.sel-btn:active{opacity:.7}
+
+/* ── PLAN CARD ── */
+.plan-card{
   background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--rad);
-  margin-bottom:10px;overflow:hidden;transition:border-color .2s;
+  margin-bottom:10px;overflow:hidden;transition:border-color .2s,background .2s;
 }
-.emp-card.on{border-color:rgba(212,175,55,.4)}
-.emp-header{display:flex;align-items:center;gap:12px;padding:14px 16px}
-.emp-avatar{
-  width:42px;height:42px;border-radius:50%;
-  background:var(--bg4);display:flex;align-items:center;justify-content:center;
-  font-size:14px;font-weight:800;color:var(--gold);flex-shrink:0;
-}
-.emp-info{flex:1;min-width:0}
-.emp-name{font-size:15px;font-weight:700;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.emp-role{font-size:11px;color:var(--txt2);margin-top:2px}
-
-/* ── TOGGLE ── */
-.toggle{position:relative;width:52px;height:28px;flex-shrink:0;cursor:pointer}
-.toggle input{opacity:0;width:0;height:0;position:absolute}
-.toggle-sl{
-  position:absolute;inset:0;background:var(--bg4);border-radius:28px;
-  border:1px solid var(--bdr);transition:background .2s,border-color .2s;
-}
-.toggle-sl:before{
-  content:'';position:absolute;width:22px;height:22px;left:2px;top:2px;
-  background:#555;border-radius:50%;transition:transform .2s,background .2s;
-}
-.toggle input:checked ~ .toggle-sl{background:rgba(212,175,55,.18);border-color:rgba(212,175,55,.45)}
-.toggle input:checked ~ .toggle-sl:before{transform:translateX(24px);background:var(--gold)}
-
-/* ── EMP FIELDS ── */
-.emp-fields{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px}
-.fl{display:flex;flex-direction:column;gap:5px}
-.fl label{font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px}
-.fc{
-  width:100%;background:var(--bg3);border:1px solid var(--bdr);border-radius:var(--rad2);
-  padding:12px 12px;color:var(--txt);font-size:14px;outline:none;font-family:inherit;
-}
-.fc:focus{border-color:var(--gold)}
-.time-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.plan-card.selected{border-color:rgba(212,175,55,.5);background:rgba(212,175,55,.05)}
+.plan-card.sent{opacity:.65}
+.plan-card-top{display:flex;align-items:flex-start;gap:12px;padding:14px 16px}
+.plan-card-info{flex:1;min-width:0}
+.plan-chantier{font-size:15px;font-weight:700;color:var(--txt);margin-bottom:4px}
+.plan-addr{font-size:11px;color:var(--txt2);margin-bottom:3px}
+.plan-emp{font-size:13px;color:var(--txt);margin-bottom:2px}
+.plan-dates{font-size:12px;color:var(--gold);font-weight:600;margin-bottom:2px}
+.plan-hours{font-size:12px;color:var(--txt2);margin-bottom:2px}
+.plan-note{font-size:11px;color:var(--txt2);font-style:italic}
+.plan-sent-badge{font-size:11px;font-weight:700;color:var(--green);padding:0 16px 10px;letter-spacing:.5px}
+.plan-renvoyer{background:var(--bg4);border:1px solid var(--bdr);border-radius:var(--rad2);padding:8px 12px;color:var(--txt2);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;font-family:inherit}
+.plan-check{width:24px;height:24px;flex-shrink:0;margin-top:2px;position:relative;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.plan-check input{position:absolute;opacity:0;width:0;height:0}
+.plan-check-box{width:22px;height:22px;border:2px solid rgba(255,255,255,.2);border-radius:6px;background:var(--bg4);transition:all .15s;display:flex;align-items:center;justify-content:center}
+.plan-check input:checked ~ .plan-check-box{background:var(--gold);border-color:var(--gold)}
+.plan-check input:checked ~ .plan-check-box::after{content:'✓';font-size:13px;font-weight:900;color:#000}
 
 /* ── BOTTOM BAR ── */
 .bottombar{
@@ -183,17 +152,14 @@ body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSys
   <div class="topbar-sync" id="sync-lbl">—</div>
 </div>
 
-<!-- DATE BAR -->
-<div class="datebar">
-  <span class="date-lbl">Date</span>
-  <input type="date" id="hor-date" class="date-inp">
-  <button class="date-today" onclick="setToday()">Aujourd'hui</button>
-</div>
-
 <!-- CONTENT -->
 <div class="content">
-  <div class="sec-lbl" id="emp-lbl">Chargement...</div>
-  <div id="emp-list"><div class="loading-row">⏳ Chargement des employés...</div></div>
+  <div class="sec-lbl" id="plan-lbl">Chargement...</div>
+  <div class="sel-controls" id="sel-controls" style="display:none">
+    <button class="sel-btn" onclick="selectAll()">Tout sélectionner</button>
+    <button class="sel-btn" onclick="deselectAll()">Désélectionner tout</button>
+  </div>
+  <div id="plan-list"><div class="loading-row">⏳ Chargement des horaires...</div></div>
 </div>
 
 <!-- BOTTOM BAR -->
@@ -244,8 +210,6 @@ window.lockSubmit=function(){
 };
 
 // ── UTILS ────────────────────────────────────────────────
-function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
-function initials(n){return n.trim().split(/\s+/).map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'?';}
 let _toastTimer;
 function toast(msg,type='ok'){
   const el=document.getElementById('toast');
@@ -257,162 +221,186 @@ function toast(msg,type='ok'){
 }
 
 // ── DATA ─────────────────────────────────────────────────
-let employees=[], chantiers=[];
+let planItems=[], empMap={}, jobMap={};
 
 async function loadData(){
   try{
-    const [er,cr]=await Promise.all([
+    const [pr,er,jr]=await Promise.all([
+      fetch(HEUREKA_CONFIG.APPS_SCRIPT_URL+'?action=getData&sheet=Planning',{redirect:'follow'}),
       fetch(HEUREKA_CONFIG.APPS_SCRIPT_URL+'?action=getEmployees',{redirect:'follow'}),
       fetch(HEUREKA_CONFIG.APPS_SCRIPT_URL+'?action=getJobs',{redirect:'follow'})
     ]);
-    const ed=await er.json(), cd=await cr.json();
+    const pd=await pr.json(), ed=await er.json(), jd=await jr.json();
     if(ed.status==='ok'&&Array.isArray(ed.employees)){
-      employees=ed.employees
-        .filter(r=>r.id&&r.active==='1'&&r.teamType!=='bureau')
-        .map(r=>({id:r.id,prenom:r.fname||'',nom:r.lname||'',role:r.role||'',telephone:r.phone||''}));
+      empMap={};
+      ed.employees.forEach(e=>{empMap[e.id]=e;});
     }
-    if(cd.status==='ok'&&Array.isArray(cd.jobs)){
-      chantiers=cd.jobs
-        .filter(j=>j.id&&j.status==='actif')
-        .map(j=>({id:j.id,nom:j.name||''}));
+    if(jd.status==='ok'&&Array.isArray(jd.jobs)){
+      jobMap={};
+      jd.jobs.forEach(j=>{jobMap[j.id]=j;});
+    }
+    if(pd.status==='ok'&&Array.isArray(pd.data)){
+      planItems=pd.data.filter(r=>r.Employé_ID&&r.Chantier_ID);
     }
     document.getElementById('sync-lbl').textContent='✓ '+new Date().toLocaleTimeString('fr-CA',{hour:'2-digit',minute:'2-digit'});
-    renderList();
+    renderCards();
   }catch(e){
     document.getElementById('sync-lbl').textContent='⚠ Hors ligne';
-    renderList();
   }
+}
+
+// ── GROUPS ───────────────────────────────────────────────
+function buildGroups(items){
+  const groups={};
+  items.forEach(r=>{
+    const key=r.Employé_ID+'|'+r.Chantier_ID;
+    if(!groups[key]){
+      groups[key]={key,empId:r.Employé_ID,chantierId:r.Chantier_ID,
+        dates:[],rowIds:[],
+        heureDebut:r.Heure_Début||'',heureFin:r.Heure_Fin||'',note:r.Note||'',
+        sentCount:0,totalCount:0};
+    }
+    const g=groups[key];
+    if(r.Date)g.dates.push(r.Date);
+    if(r.ID_Planning)g.rowIds.push(r.ID_Planning);
+    g.totalCount++;
+    if(r.Horaire_Envoyé==='Oui')g.sentCount++;
+  });
+  Object.values(groups).forEach(g=>{
+    g.dates.sort();
+    g.allSent=g.sentCount===g.totalCount&&g.totalCount>0;
+  });
+  return Object.values(groups);
 }
 
 // ── STATE ────────────────────────────────────────────────
-let state={};
-function st(empId){
-  if(!state[empId])state[empId]={on:false,chantierId:'',debut:'07:00',fin:'16:00',notes:''};
-  return state[empId];
-}
+let selectedKeys=new Set();
+let _smsGroups=null;
 
 // ── RENDER ───────────────────────────────────────────────
-function renderList(){
-  const el=document.getElementById('emp-list');
-  if(!employees.length){
-    el.innerHTML=`<div class="empty"><div class="empty-ico">👷</div><div class="empty-txt">Aucun employé actif trouvé</div></div>`;
-    document.getElementById('emp-lbl').textContent='Aucun employé';
+function renderCards(){
+  const groups=buildGroups(planItems);
+  const el=document.getElementById('plan-list');
+  if(!groups.length){
+    el.innerHTML=`<div class="empty"><div class="empty-ico">📅</div><div class="empty-txt">Aucun horaire dans le Planning</div></div>`;
+    document.getElementById('plan-lbl').textContent='Aucun horaire';
+    document.getElementById('sel-controls').style.display='none';
     updateBtn();return;
   }
-  document.getElementById('emp-lbl').textContent=`${employees.length} employé${employees.length>1?'s':''} actifs`;
-  const chanOpts=chantiers.map(c=>`<option value="${c.id}">${c.nom}</option>`).join('');
-  el.innerHTML=employees.map(emp=>{
-    const s=st(emp.id);
-    const full=(emp.prenom+' '+emp.nom).trim();
-    return `<div class="emp-card${s.on?' on':''}" id="card-${emp.id}">
-      <div class="emp-header">
-        <div class="emp-avatar">${initials(full)}</div>
-        <div class="emp-info">
-          <div class="emp-name">${full}</div>
-          <div class="emp-role">${emp.role||'Employé'}</div>
-        </div>
-        <label class="toggle">
-          <input type="checkbox" id="tog-${emp.id}" ${s.on?'checked':''} onchange="onToggle('${emp.id}')">
-          <span class="toggle-sl"></span>
-        </label>
-      </div>
-      <div class="emp-fields" id="fld-${emp.id}" style="${s.on?'':'display:none'}">
-        <div class="fl">
-          <label>Chantier</label>
-          <select class="fc" id="chan-${emp.id}" onchange="onFld('${emp.id}','chantierId',this.value)">
-            <option value="">— Choisir un chantier —</option>
-            ${chanOpts}
-          </select>
-        </div>
-        <div class="time-row">
-          <div class="fl">
-            <label>Début</label>
-            <input type="time" class="fc" id="deb-${emp.id}" value="${s.debut}" onchange="onFld('${emp.id}','debut',this.value)">
-          </div>
-          <div class="fl">
-            <label>Fin</label>
-            <input type="time" class="fc" id="fin-${emp.id}" value="${s.fin}" onchange="onFld('${emp.id}','fin',this.value)">
-          </div>
-        </div>
-        <div class="fl">
-          <label>Notes (optionnel)</label>
-          <input type="text" class="fc" id="not-${emp.id}" value="${s.notes}" placeholder="Ex: apporter outils..." oninput="onFld('${emp.id}','notes',this.value)">
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-  // Restore chantier values
-  employees.forEach(emp=>{
-    const s=st(emp.id);
-    if(s.chantierId){const sel=document.getElementById('chan-'+emp.id);if(sel)sel.value=s.chantierId;}
-  });
+  const unsent=groups.filter(g=>!g.allSent);
+  const sent=groups.filter(g=>g.allSent);
+  document.getElementById('plan-lbl').textContent=`${groups.length} horaire${groups.length>1?'s':''} — ${unsent.length} à envoyer`;
+  document.getElementById('sel-controls').style.display=unsent.length?'flex':'none';
+  let html='';
+  if(unsent.length)html+=unsent.map(g=>renderCard(g,false)).join('');
+  if(sent.length){
+    html+=`<div style="font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.8px;margin:16px 0 8px">Déjà envoyés</div>`;
+    html+=sent.map(g=>renderCard(g,true)).join('');
+  }
+  el.innerHTML=html;
   updateBtn();
 }
 
-function onToggle(empId){
-  const s=st(empId);
-  s.on=document.getElementById('tog-'+empId).checked;
-  document.getElementById('fld-'+empId).style.display=s.on?'':'none';
-  document.getElementById('card-'+empId).classList.toggle('on',s.on);
+function fmtDateRange(dates){
+  if(!dates.length)return'';
+  const fmt=s=>{const p=s.split('-');return p[2]+'/'+p[1]+'/'+p[0];};
+  if(dates.length===1)return'Le '+fmt(dates[0]);
+  return'Du '+fmt(dates[0])+' au '+fmt(dates[dates.length-1]);
+}
+
+function renderCard(g,isSent){
+  const emp=empMap[g.empId]||{};
+  const job=jobMap[g.chantierId]||{};
+  const empName=((emp.fname||'')+' '+(emp.lname||'')).trim()||g.empId;
+  const jobName=job.name||g.chantierId;
+  const jobAddr=job.address||'';
+  const dateStr=fmtDateRange(g.dates);
+  const checked=selectedKeys.has(g.key);
+  const safeKey=g.key.replace(/\|/g,'_');
+  return`<div class="plan-card${isSent?' sent':''}${checked?' selected':''}" id="pcard-${safeKey}">
+    <div class="plan-card-top">
+      ${!isSent?`<label class="plan-check"><input type="checkbox" ${checked?'checked':''} onchange="toggleSel('${g.key}',this.checked)"><span class="plan-check-box"></span></label>`:''}
+      <div class="plan-card-info"${!isSent?` onclick="toggleSel('${g.key}',!selectedKeys.has('${g.key}'))"`:''}>
+        <div class="plan-chantier">${jobName}</div>
+        ${jobAddr?`<div class="plan-addr">📍 ${jobAddr}</div>`:''}
+        <div class="plan-emp">👷 ${empName}</div>
+        ${dateStr?`<div class="plan-dates">📅 ${dateStr}</div>`:''}
+        ${g.heureDebut&&g.heureFin?`<div class="plan-hours">🕐 ${g.heureDebut} – ${g.heureFin}</div>`:''}
+        ${g.note?`<div class="plan-note">📝 ${g.note}</div>`:''}
+      </div>
+      ${isSent?`<button class="plan-renvoyer" onclick="renvoyer('${g.key}')">Renvoyer</button>`:''}
+    </div>
+    ${isSent?`<div class="plan-sent-badge">✅ Envoyé</div>`:''}
+  </div>`;
+}
+
+function toggleSel(key,checked){
+  if(checked)selectedKeys.add(key);else selectedKeys.delete(key);
+  const safeKey=key.replace(/\|/g,'_');
+  const card=document.getElementById('pcard-'+safeKey);
+  if(card){
+    card.classList.toggle('selected',checked);
+    const inp=card.querySelector('input[type=checkbox]');
+    if(inp)inp.checked=checked;
+  }
   updateBtn();
 }
-function onFld(empId,field,val){st(empId)[field]=val;updateBtn();}
+
+function selectAll(){
+  buildGroups(planItems).filter(g=>!g.allSent).forEach(g=>selectedKeys.add(g.key));
+  renderCards();
+}
+function deselectAll(){selectedKeys.clear();renderCards();}
+
 function updateBtn(){
-  const n=employees.filter(e=>st(e.id).on).length;
+  const n=selectedKeys.size;
   document.getElementById('btn-send').disabled=n===0;
-  document.getElementById('send-sub').textContent=n>0?`${n} employé${n>1?'s':''} sélectionné${n>1?'s':''}` :'';
+  document.getElementById('send-sub').textContent=n>0?`${n} horaire${n>1?'s':''} sélectionné${n>1?'s':''}`:'';
 }
 
-// ── DATE ─────────────────────────────────────────────────
-function setToday(){document.getElementById('hor-date').value=todayStr();}
+// ── SMS ──────────────────────────────────────────────────
+function cleanPhone(p){return(p||'').replace(/\D/g,'');}
 
-// ── SEND ─────────────────────────────────────────────────
-function fmtDateFr(s){if(!s)return s;const p=s.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
-function cleanPhone(p){return p.replace(/\D/g,'');}
-function buildSmsBody(emp,chan,debut,fin,notes,dateFr){
-  return `Bonjour ${emp.prenom},\n\nVoici votre horaire pour le ${dateFr} :\n\n📍 Chantier : ${chan||'—'}\n🕖 Début : ${debut}\n🕔 Fin : ${fin}${notes?'\n📝 Notes : '+notes:''}\n\nBonne journée !\n— Heuréka Construction\n450-346-1486`;
+function buildSmsBody(g){
+  const emp=empMap[g.empId]||{};
+  const job=jobMap[g.chantierId]||{};
+  const prenom=emp.fname||'';
+  const jobName=job.name||g.chantierId;
+  const jobAddr=job.address||'';
+  const dateStr=fmtDateRange(g.dates);
+  const lines=[`Bonjour ${prenom},`,``,`Voici votre horaire :`,``,`📍 Chantier : ${jobName}`];
+  if(jobAddr)lines.push(jobAddr);
+  if(dateStr)lines.push(`📅 ${dateStr}`);
+  if(g.heureDebut&&g.heureFin)lines.push(`🕐 ${g.heureDebut} – ${g.heureFin}`);
+  if(g.note)lines.push(`📝 ${g.note}`);
+  lines.push(``,`Bonne journée !`,`— Heuréka Construction`,`450-346-1486`);
+  return lines.join('\n');
 }
 
-async function sendHoraires(){
-  const date=document.getElementById('hor-date').value;
-  if(!date){toast('Choisissez une date.','err');return;}
-  const active=employees.filter(e=>st(e.id).on);
-  if(!active.length){toast('Aucun employé sélectionné.','err');return;}
-
-  const btn=document.getElementById('btn-send');
-  btn.disabled=true;btn.textContent='⏳ Préparation...';
-
-  const horaires=active.map(emp=>{
-    const s=st(emp.id);
-    const chan=chantiers.find(c=>c.id===s.chantierId)||{nom:''};
-    return {empId:emp.id,empPrenom:emp.prenom,empNom:emp.nom,chantierId:s.chantierId,chantierNom:chan.nom,heureDebut:s.debut,heureFin:s.fin,notes:s.notes||''};
-  });
-
-  // Sauvegarde Planning en arrière-plan (silencieux)
-  fetch(HEUREKA_CONFIG.APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'saveHoraire',date,horaires}),redirect:'follow'}).catch(()=>{});
-
-  // Afficher écran SMS
-  showSmsScreen(date, active, horaires);
-
-  btn.textContent='📤 Envoyer les horaires';
-  updateBtn();
+function sendHoraires(){
+  const groups=buildGroups(planItems).filter(g=>selectedKeys.has(g.key));
+  if(!groups.length)return;
+  showSmsScreen(groups);
 }
 
-function showSmsScreen(date, active, horaires){
-  const dateFr=fmtDateFr(date);
-  const items=active.map((emp,i)=>{
-    const h=horaires[i];
-    const phone=cleanPhone(emp.telephone);
-    const body=encodeURIComponent(buildSmsBody(emp,h.chantierNom,h.heureDebut,h.heureFin,h.notes,dateFr));
+function showSmsScreen(groups){
+  _smsGroups=groups;
+  const items=groups.map(g=>{
+    const emp=empMap[g.empId]||{};
+    const job=jobMap[g.chantierId]||{};
+    const empName=((emp.fname||'')+' '+(emp.lname||'')).trim()||g.empId;
+    const phone=cleanPhone(emp.phone||'');
+    const body=encodeURIComponent(buildSmsBody(g));
     const smsLink=phone?`sms:+1${phone}?&body=${body}`:'';
-    const hasTel=!!phone;
-    return `<div style="background:var(--bg3);border:1px solid var(--bdr);border-radius:var(--rad);padding:14px 16px;display:flex;align-items:center;gap:12px">
-      <div style="width:40px;height:40px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--gold);flex-shrink:0">${initials((emp.prenom+' '+emp.nom).trim())}</div>
+    const ini=empName.trim().split(/\s+/).map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'?';
+    return`<div style="background:var(--bg3);border:1px solid var(--bdr);border-radius:var(--rad);padding:14px 16px;display:flex;align-items:center;gap:12px">
+      <div style="width:40px;height:40px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--gold);flex-shrink:0">${ini}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:14px;font-weight:700">${emp.prenom} ${emp.nom}</div>
-        <div style="font-size:11px;color:var(--txt2);margin-top:2px">${emp.telephone||'Aucun numéro'}</div>
+        <div style="font-size:14px;font-weight:700">${empName}</div>
+        <div style="font-size:11px;color:var(--txt2);margin-top:2px">${emp.phone||'Aucun numéro'}</div>
+        <div style="font-size:11px;color:var(--txt2)">${job.name||g.chantierId}</div>
       </div>
-      ${hasTel
+      ${phone
         ?`<a href="${smsLink}" style="background:linear-gradient(135deg,#D4AF37,#B8960C);color:#000;font-size:13px;font-weight:800;padding:10px 14px;border-radius:var(--rad2);text-decoration:none;white-space:nowrap;flex-shrink:0">📱 SMS</a>`
         :`<span style="font-size:11px;color:var(--red);flex-shrink:0">Pas de tél.</span>`
       }
@@ -424,30 +412,60 @@ function showSmsScreen(date, active, horaires){
   overlay.style.cssText='position:fixed;inset:0;z-index:9000;background:var(--bg);display:flex;flex-direction:column';
   overlay.innerHTML=`
     <div style="background:var(--bg2);border-bottom:1px solid var(--bdr);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:1">
-      <button onclick="closeSmsScreen()" style="background:var(--bg3);border:1px solid var(--bdr);border-radius:var(--rad2);padding:8px 14px;color:var(--txt);font-size:13px;font-weight:700;cursor:pointer">← Retour</button>
+      <button onclick="closeSmsScreen(false)" style="background:var(--bg3);border:1px solid var(--bdr);border-radius:var(--rad2);padding:8px 14px;color:var(--txt);font-size:13px;font-weight:700;cursor:pointer">← Retour</button>
       <div style="flex:1;font-size:16px;font-weight:800;color:var(--gold)">📱 Envoyer par SMS</div>
-      <div style="font-size:11px;color:var(--txt2)">${dateFr}</div>
     </div>
     <div style="padding:14px 16px;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-bottom:80px">
       <div style="font-size:11px;color:var(--txt2);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Appuyez sur chaque bouton pour ouvrir votre messagerie</div>
       ${items}
     </div>
     <div style="position:fixed;bottom:0;left:0;right:0;padding:12px 16px 16px;background:rgba(10,10,10,.97);border-top:1px solid var(--bdr)">
-      <button onclick="closeSmsScreen(true)" style="width:100%;padding:16px;background:var(--bg3);border:1px solid rgba(212,175,55,.3);border-radius:var(--rad);color:var(--gold);font-size:15px;font-weight:800;cursor:pointer">✅ Terminé — Fermer</button>
+      <button onclick="closeSmsScreen(true)" style="width:100%;padding:16px;background:var(--bg3);border:1px solid rgba(212,175,55,.3);border-radius:var(--rad);color:var(--gold);font-size:15px;font-weight:800;cursor:pointer">✅ Terminé — Marquer comme envoyé</button>
     </div>`;
   document.body.appendChild(overlay);
 }
 
-function closeSmsScreen(done){
-  const el=document.getElementById('sms-overlay');if(el)el.remove();
-  if(done){state={};renderList();toast('Horaires sauvegardés ✓');}
+function closeSmsScreen(markDone){
+  const el=document.getElementById('sms-overlay');
+  if(el)el.remove();
+  if(markDone&&_smsGroups&&_smsGroups.length){
+    const rowIds=[].concat(..._smsGroups.map(g=>g.rowIds));
+    markSent(rowIds,_smsGroups);
+  }
+  _smsGroups=null;
+}
+
+function markSent(rowIds,groups){
+  if(!rowIds.length){toast('Aucune ligne à marquer','err');return;}
+  const sentAt=new Date().toISOString();
+  fetch(HEUREKA_CONFIG.APPS_SCRIPT_URL,{
+    method:'POST',
+    body:JSON.stringify({action:'markHoraireSent',ids:rowIds,sentAt}),
+    redirect:'follow'
+  })
+  .then(r=>r.json())
+  .then(res=>{
+    if(res.status==='ok'){
+      toast(`${groups.length} horaire${groups.length>1?'s':''} marqué${groups.length>1?'s':''} comme envoyé${groups.length>1?'s':''} ✓`);
+      groups.forEach(g=>selectedKeys.delete(g.key));
+      loadData();
+    }else{
+      toast('Erreur: '+(res.message||'inconnue'),'err');
+    }
+  })
+  .catch(()=>toast('Erreur de connexion','err'));
+}
+
+function renvoyer(key){
+  const groups=buildGroups(planItems);
+  const g=groups.find(x=>x.key===key);
+  if(g)showSmsScreen([g]);
 }
 
 // ── INIT ─────────────────────────────────────────────────
 if(validSession())unlockApp();
-setToday();
 loadData();
-setInterval(loadData, HEUREKA_CONFIG.SYNC_INTERVAL_MS);
+setInterval(loadData,HEUREKA_CONFIG.SYNC_INTERVAL_MS);
 </script>
 </body>
 </html>

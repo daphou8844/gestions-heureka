@@ -32,7 +32,7 @@ const NEW_HEADERS = {
   CLIENTS:     ['ID_Client',    'Nom',          'Téléphone',        'Courriel',        'Adresse',          'Ville',             'Référé_Par',        'Notes',            'Date_Créé'],
   EMPLOYES:    ['ID_Employé',   'Prénom',       'Nom',              'Rôle',            'Taux_Horaire',     'Téléphone',         'Email',             'NAS_4_Derniers',   'Statut',          'Type_Équipe'],
   CHANTIERS:   ['ID_Chantier',  'Nom_Chantier', 'Client_ID',        'Adresse',         'Statut',           'Date_Début',        'Date_Fin_Prévue',   'Budget',           'Contremaître_ID', 'Notes',       'Lieu_Fixe',       'Type_Équipe_Associée', 'Drive_ID', 'Drive_URL'],
-  PLANNING:    ['ID_Planning',  'Horaire_ID',   'Employé_ID',       'Chantier_ID',     'Date',             'Heure_Début',       'Heure_Fin',         'Note'],
+  PLANNING:    ['ID_Planning',  'Horaire_ID',   'Employé_ID',       'Chantier_ID',     'Date',             'Heure_Début',       'Heure_Fin',         'Note',             'Horaire_Envoyé',    'Horaire_Envoyé_Le'],
   PUNCH:       ['ID_Punch',     'Employé_ID',   'Chantier_ID',      'Date',            'Punch_In',         'Punch_Out',         'Heures',            'Statut',           'Note',            'Rapport_Fin_Journée'],
   MKT_CONTENU: ['ID_Contenu',   'Projet_ID',    'Client',           'Type_Travaux',    'Ville',            'Date_Fin_Chantier', 'Statut_Contenu',    'Type_Post',        'Plateforme',      'Texte_Contenu','Date_Publication'],
   MKT_TIKTOK:  ['ID_Tendance',  'Hashtag',      'Vues',             'Score_Pertinence','Date_Capturée',    'Utilisé'],

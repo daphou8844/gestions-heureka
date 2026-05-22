@@ -191,6 +191,9 @@ function doPost(e) {
       case 'deleteHoraire':
         result = deleteById(SHEETS.HORAIRES, data.id);
         break;
+      case 'markHoraireSent':
+        result = markHoraireSent(data.ids, data.sentAt || '');
+        break;
 
       // --- Soumission revêtement ---
       case 'saveSoumission':
@@ -530,6 +533,27 @@ function saveHoraire(h) {
   ];
   upsertRow(sheet, h.id, row);
   return { status: 'ok', message: 'Horaire enregistré' };
+}
+
+function markHoraireSent(ids, sentAt) {
+  if (!ids || !ids.length) return { status: 'error', message: 'Aucun ID fourni' };
+  var sheet = _ss().getSheetByName('Planning');
+  if (!sheet) return { status: 'error', message: 'Onglet Planning introuvable' };
+  var rows = sheet.getDataRange().getValues();
+  var headers = rows[0];
+  var idCol = headers.indexOf('ID_Planning');
+  var envCol = headers.indexOf('Horaire_Envoyé');
+  var envLeCol = headers.indexOf('Horaire_Envoyé_Le');
+  if (idCol < 0 || envCol < 0 || envLeCol < 0) return { status: 'error', message: 'Colonnes manquantes dans Planning' };
+  var count = 0;
+  for (var i = 1; i < rows.length; i++) {
+    if (ids.indexOf(rows[i][idCol].toString()) >= 0) {
+      sheet.getRange(i + 1, envCol + 1).setValue('Oui');
+      sheet.getRange(i + 1, envLeCol + 1).setValue(sentAt);
+      count++;
+    }
+  }
+  return { status: 'ok', updated: count };
 }
 
 // ============================================================
