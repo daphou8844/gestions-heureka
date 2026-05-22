@@ -973,10 +973,16 @@ function renderPanel(p) {
 // =====================================================
 function getEmp(id) { return DB.get('employees').find(e=>e.id===id)||{fname:'?',lname:'',role:'',rate:0,active:'0'}; }
 function getJob(id) { return DB.get('jobs').find(j=>j.id===id)||{name:'?',status:''}; }
+function fmtTime(t) {
+  if(!t) return '';
+  const m = t.toString().match(/(\d{1,2}):(\d{2})/);
+  return m ? m[1].padStart(2,'0')+':'+m[2] : '';
+}
 function calcHours(pIn, pOut) {
   if(!pIn||!pOut) return 0;
-  const [h1,m1]=pIn.split(':').map(Number), [h2,m2]=pOut.split(':').map(Number);
-  return Math.max(0,((h2*60+m2)-(h1*60+m1))/60);
+  const pt = t => { const m=t.toString().match(/(\d{1,2}):(\d{2})/); return m?(+m[1])*60+(+m[2]):NaN; };
+  const d = pt(pOut)-pt(pIn);
+  return isNaN(d)?0:Math.max(0,d/60);
 }
 function empFullName(e) { return (e.fname+' '+e.lname).trim(); }
 function empAvatar(e,size=36,cls='') {
@@ -1062,10 +1068,11 @@ function renderDashboard() {
   }).join('') : '<div class="empty"><div class="empty-ico">🏗</div><div>Aucun chantier actif</div></div>';
 
   // Recent punches
-  const recent = [...punchs].sort((a,b)=>b.date.localeCompare(a.date)||(b.punchIn||'').localeCompare(a.punchIn||'')).slice(0,6);
+  const recent = [...punchs].sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(fmtTime(b.punchIn)||'').localeCompare(fmtTime(a.punchIn)||'')).slice(0,6);
   document.getElementById('dash-punchs').innerHTML = recent.length ? recent.map(p=>{
     const e=getEmp(p.empId), j=getJob(p.jobId);
-    const hrs=p.punchOut?calcHours(p.punchIn,p.punchOut):null;
+    const tIn=fmtTime(p.punchIn), tOut=fmtTime(p.punchOut);
+    const hrs=tOut?calcHours(tIn,tOut):null;
     return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bdr)">
       ${empAvatar(e,30)}
       <div style="flex:1">
@@ -1073,8 +1080,8 @@ function renderDashboard() {
         <div style="font-size:11px;color:var(--txt2)">${j.name} · ${fmt(p.date)}</div>
       </div>
       <div style="text-align:right">
-        <div style="font-size:12px;font-weight:700;color:${p.punchOut?'var(--txt)':'var(--ok)'}">${p.punchOut?fmtHours(hrs):'En cours'}</div>
-        <div style="font-size:10px;color:var(--txt2)">${p.punchIn}${p.punchOut?' → '+p.punchOut:''}</div>
+        <div style="font-size:12px;font-weight:700;color:${tOut?'var(--txt)':'var(--ok)'}">${tOut&&hrs?fmtHours(hrs):'En cours'}</div>
+        <div style="font-size:10px;color:var(--txt2)">${tIn}${tOut?' → '+tOut:''}</div>
       </div>
     </div>`;
   }).join('') : '<div class="empty"><div class="empty-ico">⏱</div><div>Aucun punch aujourd\'hui</div></div>';
@@ -1098,7 +1105,7 @@ function renderDashboardAlerts() {
     const e=getEmp(p.empId), j=getJob(p.jobId);
     alerts.push({type:'err',icon:'⏰',
       title:'Punch OUT oublié',
-      msg:`${empFullName(e)} — ${j.name} — ${fmt(p.date)} (in: ${p.punchIn})`,
+      msg:`${empFullName(e)} — ${j.name} — ${fmt(p.date)} (in: ${fmtTime(p.punchIn)})`,
       actionLabel:'Corriger', action:`editPunch('${p.id}')`});
   });
 
@@ -1144,7 +1151,7 @@ function showPunchedList() {
         </div>
         <div style="text-align:right">
           <div style="font-size:12px;font-weight:700;color:var(--ok)">En cours</div>
-          <div style="font-size:10px;color:var(--txt2)">Depuis ${p.punchIn}</div>
+          <div style="font-size:10px;color:var(--txt2)">Depuis ${fmtTime(p.punchIn)}</div>
         </div>
       </div>`;
     }).join('');
@@ -1597,14 +1604,15 @@ function renderLive() {
     const j=punch?getJob(punch.jobId):(lastOut?getJob(lastOut.jobId):null);
     let elapsed='—', since='';
     if(punch) {
-      const [h,m]=punch.punchIn.split(':').map(Number);
+      const tIn=fmtTime(punch.punchIn);
+      const [h,m]=(tIn||'0:0').split(':').map(Number);
       const start=new Date(); start.setHours(h,m,0,0);
       const mins=Math.max(0,Math.floor((now-start)/60000));
       elapsed=Math.floor(mins/60)+'h'+(mins%60).toString().padStart(2,'0');
-      since='Depuis '+punch.punchIn;
+      since='Depuis '+tIn;
     } else if(lastOut) {
-      elapsed=fmtHours(calcHours(lastOut.punchIn,lastOut.punchOut));
-      since='Parti à '+lastOut.punchOut;
+      elapsed=fmtHours(calcHours(fmtTime(lastOut.punchIn),fmtTime(lastOut.punchOut)));
+      since='Parti à '+fmtTime(lastOut.punchOut);
     }
     const c=avColor(e.fname);
     html+=`<div class="live-card ${isIn?'in':'out'}">
@@ -1645,17 +1653,18 @@ function renderPunchsTable() {
   const ef=document.getElementById('punch-filter-emp')?.value;
   if(df) punchs=punchs.filter(p=>p.date===df);
   if(ef) punchs=punchs.filter(p=>p.empId===ef);
-  punchs.sort((a,b)=>b.date.localeCompare(a.date)||(b.punchIn||'').localeCompare(a.punchIn||''));
+  punchs.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(fmtTime(b.punchIn)||'').localeCompare(fmtTime(a.punchIn)||''));
   document.getElementById('punchs-tbody').innerHTML=punchs.length?punchs.map(p=>{
     const e=getEmp(p.empId), j=getJob(p.jobId);
-    const hrs=p.punchOut?calcHours(p.punchIn,p.punchOut):null;
+    const tIn=fmtTime(p.punchIn), tOut=fmtTime(p.punchOut);
+    const hrs=tOut?calcHours(tIn,tOut):null;
     return `<tr>
       <td><div style="display:flex;align-items:center;gap:8px">${empAvatar(e,28)}<span style="font-size:12px;font-weight:700">${empFullName(e)}</span></div></td>
       <td style="font-size:12px">${j.name}</td>
       <td style="font-size:12px">${fmt(p.date)}</td>
-      <td><span class="badge b-blue">${p.punchIn}</span></td>
-      <td>${p.punchOut?`<span class="badge b-gray">${p.punchOut}`:'<span class="badge b-green">En cours'}</span></td>
-      <td style="font-weight:700">${hrs?fmtHours(hrs):'—'}</td>
+      <td><span class="badge b-blue">${tIn||'—'}</span></td>
+      <td>${tOut?`<span class="badge b-gray">${tOut}`:'<span class="badge b-green">En cours'}</span></td>
+      <td style="font-weight:700">${hrs!==null&&hrs>0?fmtHours(hrs):'—'}</td>
       <td>${p.punchOut?`<span class="badge b-green">Complet</span>`:`<span class="badge b-orange">Ouvert</span>`}</td>
       <td><div style="display:flex;gap:6px">
         <button class="btn btn-outline btn-sm" onclick="editPunch('${p.id}')">✏</button>

@@ -887,7 +887,15 @@ function cell(row, headers, colName) {
   const idx = headers.indexOf(colName);
   if (idx < 0 || idx >= row.length) return '';
   const val = row[idx];
-  return val !== null && val !== undefined ? val.toString().trim() : '';
+  if (val === null || val === undefined) return '';
+  if (val instanceof Date) {
+    // Apps Script represents time-only cells with base year 1899
+    if (val.getFullYear() <= 1900) {
+      return Utilities.formatDate(val, 'America/Toronto', 'HH:mm');
+    }
+    return Utilities.formatDate(val, 'America/Toronto', 'yyyy-MM-dd');
+  }
+  return val.toString().trim();
 }
 
 // ============================================================
