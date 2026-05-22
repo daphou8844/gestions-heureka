@@ -240,10 +240,6 @@ function doPost(e) {
         result = data.docId ? deleteRow('Documents', data.docId) : { status:'ok' };
         break;
 
-      case 'updateProjetDossierSOU':
-        result = updateProjetDossierSOU(data);
-        break;
-
       default:
         result = { status: 'error', message: 'Action inconnue: ' + action };
     }
@@ -1103,45 +1099,4 @@ function showDeployUrl() {
     '· admin.html → ⚙ Paramètres → URL Apps Script\n' +
     '· punch.html → ⚙ → URL Google Sheets'
   );
-}
-
-// ── Dossier SOU persisté dans le Sheet ───────────────────────────────────────
-
-/**
- * Persiste Dossier_SOU_ID et Dossier_SOU_URL dans la feuille Projets.
- * Crée les colonnes si elles n'existent pas encore (auto-migration).
- * data = { projetId, driveId, driveUrl }
- */
-function updateProjetDossierSOU(data) {
-  var ss    = _ss();
-  var sheet = ss.getSheetByName('Projets');
-  if (!sheet) return { status: 'error', message: 'Feuille Projets introuvable' };
-
-  var lastCol = sheet.getLastColumn();
-  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h){ return h.toString().trim(); });
-
-  var souIdCol  = headers.indexOf('Dossier_SOU_ID')  + 1;
-  var souUrlCol = headers.indexOf('Dossier_SOU_URL') + 1;
-
-  if (souIdCol === 0) {
-    souIdCol = lastCol + 1;
-    sheet.getRange(1, souIdCol).setValue('Dossier_SOU_ID')
-         .setBackground('#0a1628').setFontColor('#D4AF37').setFontWeight('bold');
-    lastCol = souIdCol;
-  }
-  if (souUrlCol === 0) {
-    souUrlCol = lastCol + 1;
-    sheet.getRange(1, souUrlCol).setValue('Dossier_SOU_URL')
-         .setBackground('#0a1628').setFontColor('#D4AF37').setFontWeight('bold');
-  }
-
-  var rows = sheet.getRange(1, 1, sheet.getLastRow(), 1).getValues();
-  for (var i = 1; i < rows.length; i++) {
-    if (rows[i][0] && rows[i][0].toString().trim() === data.projetId) {
-      sheet.getRange(i + 1, souIdCol).setValue(data.driveId  || '');
-      sheet.getRange(i + 1, souUrlCol).setValue(data.driveUrl || '');
-      return { status: 'ok' };
-    }
-  }
-  return { status: 'error', message: 'Projet introuvable: ' + data.projetId };
 }

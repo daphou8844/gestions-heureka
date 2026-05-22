@@ -373,16 +373,141 @@ function uploadFileToDrive(data) {
   if (!data.content)  throw new Error('Contenu du fichier manquant');
   if (!data.fileName) throw new Error('Nom de fichier manquant');
 
-  var subfolder = getChantierSubfolder(data.driveId, data.subfolder || 'Plans & Devis');
-  if (!subfolder) throw new Error('Impossible d\'accéder au sous-dossier: ' + data.subfolder);
+  var targetFolder = data.subfolder
+    ? getChantierSubfolder(data.driveId, data.subfolder)
+    : DriveApp.getFolderById(data.driveId);
+  if (!targetFolder) throw new Error('Impossible d\'accéder au dossier');
 
-  var bytes    = Utilities.base64Decode(data.content);
-  var blob     = Utilities.newBlob(bytes, data.mimeType || 'application/octet-stream', data.fileName);
-  var file     = subfolder.createFile(blob);
-  var fileId   = file.getId();
-  var fileUrl  = 'https://drive.google.com/file/d/' + fileId + '/view';
+  var bytes   = Utilities.base64Decode(data.content);
+  var blob    = Utilities.newBlob(bytes, data.mimeType || 'application/octet-stream', data.fileName);
+  var file    = targetFolder.createFile(blob);
+  var fileId  = file.getId();
+  var fileUrl = 'https://drive.google.com/file/d/' + fileId + '/view';
 
   return { status: 'ok', fileId: fileId, fileUrl: fileUrl, fileName: data.fileName };
+}
+
+// ── DOSSIER SOUMISSION (SOU-XXXX) ────────────────────────────────────────────
+
+/**
+ * Trouve ou crée le dossier SOU d'un projet.
+ * Idempotent: utilise appProperties { projetId } pour retrouver un dossier
+ * existant depuis n'importe quel appareil sans toucher au Sheet.
+ * data: { projetId, clientNom, ville }
+ */
+function handleCreateSoumissionFolder(data) {
+  var projetId  = data.projetId  || '';
+  var clientNom = data.clientNom || 'Client';
+  var ville     = data.ville     || '';
+
+  // 1. Chercher un dossier existant dans tout le Drive partagé
+  var existing = _findSouFolderByProjetId(projetId);
+  if (existing) {
+    return { status:'ok', exists:true,
+             driveId: existing.id,
+             driveUrl: 'https://drive.google.com/drive/folders/' + existing.id,
+             souId: existing.name };
+  }
+
+  // 2. Créer le nouveau dossier dans 02 - Soumissions/En cours/
+  var root    = _driveRoot();
+  var souRoot = _getOrCreateFolder(root, '02 - Soumissions');
+  var enCours = _getOrCreateFolder(souRoot, 'En cours');
+  var nextNum = _getNextSouNumero(souRoot);
+  var folderName = 'SOU-' + nextNum + ' - ' + clientNom + (ville ? ' - ' + ville : '');
+
+  var newFolder = enCours.createFolder(folderName);
+  var folderId  = newFolder.getId();
+
+  // Sous-dossiers standards
+  ['Plans & Devis','Photos','Contrats & Permis','Factures & Paiements','Heures'].forEach(function(n){
+    newFolder.createFolder(n);
+  });
+
+  // Tag avec projetId pour retrouver cross-device (Drive Advanced Service)
+  try {
+    Drive.Files.update({ appProperties: { projetId: projetId } }, folderId, null,
+      { supportsAllDrives: true });
+  } catch(e) {
+    Logger.log('appProperties tag: ' + e);
+  }
+
+  return { status:'ok', exists:false,
+           driveId: folderId,
+           driveUrl: 'https://drive.google.com/drive/folders/' + folderId,
+           souId: folderName };
+}
+
+/**
+ * Cherche dans tout le Drive partagé un dossier tagué projetId.
+ * Retourne { id, name } ou null.
+ */
+function _findSouFolderByProjetId(projetId) {
+  if (!projetId) return null;
+  try {
+    var res = Drive.Files.list({
+      q: "mimeType='application/vnd.google-apps.folder'" +
+         " and appProperties has { key='projetId' and value='" + projetId + "' }" +
+         " and trashed=false",
+      supportsAllDrives:         true,
+      includeItemsFromAllDrives: true,
+      fields: 'files(id,name)'
+    });
+    return (res.files && res.files.length > 0) ? res.files[0] : null;
+  } catch(e) {
+    Logger.log('_findSouFolderByProjetId: ' + e);
+    return null;
+  }
+}
+
+function _getNextSouNumero(souRoot) {
+  var max = 0;
+  var subs = souRoot.getFolders();
+  while (subs.hasNext()) {
+    var sub = subs.next().getFolders();
+    while (sub.hasNext()) {
+      var m = sub.next().getName().match(/^SOU-(\d+)/);
+      if (m) max = Math.max(max, parseInt(m[1]));
+    }
+  }
+  var n = String(max + 1); while (n.length < 4) n = '0' + n;
+  return n;
+}
+
+/**
+ * Déplace le dossier SOU vers Gagnées ou Refusées.
+ * data: { driveId, newStatut }  'gagne' | 'perdu'
+ */
+function handleMoveDossierSoumission(data) {
+  var driveId = data.driveId;
+  if (!driveId) return { status:'error', message:'driveId manquant' };
+  try {
+    var root    = _driveRoot();
+    var souRoot = _getOrCreateFolder(root, '02 - Soumissions');
+    var dest    = _getOrCreateFolder(souRoot, data.newStatut === 'gagne' ? 'Gagnées' : 'Refusées');
+    var file    = Drive.Files.get(driveId, { supportsAllDrives:true, fields:'id,name,parents' });
+    Drive.Files.update({}, driveId, null, {
+      addParents:        dest.getId(),
+      removeParents:     (file.parents||[]).join(','),
+      supportsAllDrives: true
+    });
+    return { status:'ok', driveId:driveId,
+             driveUrl: 'https://drive.google.com/drive/folders/' + driveId,
+             chanId: file.name };
+  } catch(e) {
+    Logger.log('handleMoveDossierSoumission: ' + e);
+    return { status:'error', message:e.toString() };
+  }
+}
+
+function handleDeleteDocument(data) {
+  try {
+    if (data.fileId) DriveApp.getFileById(data.fileId).setTrashed(true);
+    return { status:'ok' };
+  } catch(e) {
+    Logger.log('handleDeleteDocument: ' + e);
+    return { status:'error', message:e.toString() };
+  }
 }
 
 function handleUploadFile(data) {
