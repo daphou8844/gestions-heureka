@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Horaires — Heuréka</title>
+<style>
+:root{
+  --gold:#D4AF37;--gold2:#B8960C;
+  --bg:#0a0a0a;--bg2:#111;--bg3:#1a1a1a;--bg4:#222;
+  --txt:#f5f5f5;--txt2:#888;
+  --bdr:rgba(255,255,255,.08);--glow:rgba(212,175,55,.12);
+  --red:#EF4444;--green:#22C55E;
+  --rad:12px;--rad2:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;padding-bottom:96px}
+
+/* ── TOP BAR ── */
+.topbar{
+  position:sticky;top:0;z-index:100;
+  background:rgba(10,10,10,.96);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--bdr);
+  padding:14px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.topbar-brand{font-size:17px;font-weight:800;color:var(--gold);letter-spacing:.3px}
+.topbar-brand span{display:block;font-size:11px;font-weight:400;color:var(--txt2);letter-spacing:1.5px;text-transform:uppercase;margin-top:1px}
+.topbar-sync{font-size:11px;color:var(--txt2);text-align:right}
+
+/* ── DATE BAR ── */
+.datebar{
+  background:var(--bg2);border-bottom:1px solid var(--bdr);
+  padding:12px 16px;display:flex;align-items:center;gap:10px;
+}
+.date-lbl{font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;flex-shrink:0}
+.date-inp{
+  flex:1;background:var(--bg3);border:1px solid var(--bdr);border-radius:var(--rad2);
+  padding:10px 12px;color:var(--txt);font-size:14px;font-weight:600;
+  outline:none;font-family:inherit;
+}
+.date-inp:focus{border-color:var(--gold)}
+.date-today{
+  background:var(--bg3);border:1px solid rgba(212,175,55,.3);border-radius:var(--rad2);
+  padding:10px 12px;color:var(--gold);font-size:12px;font-weight:700;
+  cursor:pointer;white-space:nowrap;flex-shrink:0;
+}
+
+/* ── CONTENT ── */
+.content{padding:14px 16px}
+.sec-lbl{font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px}
+
+/* ── EMPLOYEE CARD ── */
+.emp-card{
+  background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--rad);
+  margin-bottom:10px;overflow:hidden;transition:border-color .2s;
+}
+.emp-card.on{border-color:rgba(212,175,55,.4)}
+.emp-header{display:flex;align-items:center;gap:12px;padding:14px 16px}
+.emp-avatar{
+  width:42px;height:42px;border-radius:50%;
+  background:var(--bg4);display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:800;color:var(--gold);flex-shrink:0;
+}
+.emp-info{flex:1;min-width:0}
+.emp-name{font-size:15px;font-weight:700;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.emp-role{font-size:11px;color:var(--txt2);margin-top:2px}
+
+/* ── TOGGLE ── */
+.toggle{position:relative;width:52px;height:28px;flex-shrink:0;cursor:pointer}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle-sl{
+  position:absolute;inset:0;background:var(--bg4);border-radius:28px;
+  border:1px solid var(--bdr);transition:background .2s,border-color .2s;
+}
+.toggle-sl:before{
+  content:'';position:absolute;width:22px;height:22px;left:2px;top:2px;
+  background:#555;border-radius:50%;transition:transform .2s,background .2s;
+}
+.toggle input:checked ~ .toggle-sl{background:rgba(212,175,55,.18);border-color:rgba(212,175,55,.45)}
+.toggle input:checked ~ .toggle-sl:before{transform:translateX(24px);background:var(--gold)}
+
+/* ── EMP FIELDS ── */
+.emp-fields{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px}
+.fl{display:flex;flex-direction:column;gap:5px}
+.fl label{font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px}
+.fc{
+  width:100%;background:var(--bg3);border:1px solid var(--bdr);border-radius:var(--rad2);
+  padding:12px 12px;color:var(--txt);font-size:14px;outline:none;font-family:inherit;
+}
+.fc:focus{border-color:var(--gold)}
+.time-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+/* ── BOTTOM BAR ── */
+.bottombar{
+  position:fixed;bottom:0;left:0;right:0;
+  padding:12px 16px 16px;
+  background:rgba(10,10,10,.97);backdrop-filter:blur(12px);
+  border-top:1px solid var(--bdr);
+}
+.btn-send{
+  width:100%;padding:17px;
+  background:linear-gradient(135deg,#D4AF37,#B8960C);
+  color:#000;font-size:16px;font-weight:800;
+  border:none;border-radius:var(--rad);cursor:pointer;
+  font-family:inherit;letter-spacing:.3px;
+  transition:opacity .15s,transform .1s;
+}
+.btn-send:active:not(:disabled){transform:scale(.99)}
+.btn-send:disabled{opacity:.35;cursor:not-allowed}
+.send-sub{font-size:11px;color:var(--txt2);text-align:center;margin-top:7px;min-height:16px}
+
+/* ── STATES ── */
+.empty{text-align:center;padding:52px 24px;color:var(--txt2)}
+.empty-ico{font-size:44px;margin-bottom:14px}
+.empty-txt{font-size:14px}
+.loading-row{display:flex;align-items:center;justify-content:center;gap:8px;padding:36px;color:var(--txt2);font-size:13px}
+
+/* ── TOAST ── */
+#toast{
+  position:fixed;top:76px;left:50%;transform:translateX(-50%);
+  background:var(--bg3);border:1px solid var(--bdr);
+  padding:12px 20px;border-radius:var(--rad);
+  font-size:13px;font-weight:600;color:var(--txt);
+  box-shadow:0 8px 32px rgba(0,0,0,.6);
+  z-index:9998;opacity:0;transition:opacity .25s;
+  white-space:nowrap;max-width:90vw;text-align:center;pointer-events:none;
+}
+#toast.show{opacity:1}
+
+/* ── LOCK SCREEN ── */
+#lock-screen{position:fixed;inset:0;z-index:99999;background:#0a0a0a;display:flex;align-items:center;justify-content:center}
+#lock-screen.hidden{display:none!important}
+.lock-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 55%,rgba(212,175,55,.08) 0%,transparent 65%);pointer-events:none}
+.lock-card{
+  position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:22px;
+  padding:44px 32px;background:#111;
+  border:1px solid rgba(212,175,55,.2);border-radius:18px;
+  box-shadow:0 24px 80px rgba(0,0,0,.7);width:340px;max-width:92vw;
+}
+.lock-ico{font-size:52px;margin-bottom:2px}
+.lock-name{font-size:20px;font-weight:800;color:#fff;text-align:center;line-height:1.25}
+.lock-name span{display:block;font-size:11px;font-weight:500;color:#666;letter-spacing:2px;text-transform:uppercase;margin-top:5px}
+.lock-field{width:100%;display:flex;flex-direction:column;gap:10px}
+.lock-inp{
+  width:100%;padding:14px 16px;background:#1a1a1a;
+  border:1.5px solid rgba(212,175,55,.18);border-radius:10px;
+  color:#fff;font-size:22px;letter-spacing:8px;text-align:center;
+  font-family:inherit;outline:none;transition:border-color .2s,box-shadow .2s;
+}
+.lock-inp:focus{border-color:#D4AF37;box-shadow:0 0 0 3px rgba(212,175,55,.12)}
+.lock-inp::placeholder{font-size:13px;letter-spacing:1px;color:#3a3a3a}
+.lock-btn{
+  width:100%;padding:14px;background:linear-gradient(135deg,#D4AF37,#B8960C);
+  color:#000;font-size:15px;font-weight:800;
+  border:none;border-radius:10px;cursor:pointer;
+  font-family:inherit;letter-spacing:.5px;transition:opacity .18s;
+}
+.lock-btn:disabled{opacity:.4;cursor:not-allowed}
+.lock-err{color:#EF4444;font-size:12.5px;text-align:center;min-height:16px;font-weight:500}
+</style>
+</head>
+<body>
+
+<!-- LOCK -->
+<div id="lock-screen">
+  <div class="lock-bg"></div>
+  <div class="lock-card">
+    <div class="lock-ico">📅</div>
+    <div class="lock-name">Horaires Heuréka<span>Envoi d'horaires</span></div>
+    <div class="lock-field">
+      <input type="password" id="lock-inp" class="lock-inp" placeholder="••••" maxlength="20" autocomplete="off"
+        onkeydown="if(event.key==='Enter')lockSubmit()">
+      <button class="lock-btn" id="lock-btn" onclick="lockSubmit()">Entrer</button>
+      <div class="lock-err" id="lock-err"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-brand">📅 Horaires<span>Heuréka Construction</span></div>
+  <div class="topbar-sync" id="sync-lbl">—</div>
+</div>
+
+<!-- DATE BAR -->
+<div class="datebar">
+  <span class="date-lbl">Date</span>
+  <input type="date" id="hor-date" class="date-inp">
+  <button class="date-today" onclick="setToday()">Aujourd'hui</button>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+  <div class="sec-lbl" id="emp-lbl">Chargement...</div>
+  <div id="emp-list"><div class="loading-row">⏳ Chargement des employés...</div></div>
+</div>
+
+<!-- BOTTOM BAR -->
+<div class="bottombar">
+  <button class="btn-send" id="btn-send" onclick="sendHoraires()" disabled>📤 Envoyer les horaires</button>
+  <div class="send-sub" id="send-sub"></div>
+</div>
+
+<div id="toast"></div>
+
+<script src="config.js"></script>
+<script>
+// ── SESSION ──────────────────────────────────────────────
+const SK='hk_hor_sess';
+function validSession(){
+  try{const s=JSON.parse(sessionStorage.getItem(SK)||'null');if(!s||!s.ts)return false;return(Date.now()-s.ts)<12*3600000;}catch(e){return false;}
+}
+function unlockApp(){document.getElementById('lock-screen').classList.add('hidden');}
+window.lockSubmit=function(){
+  const inp=document.getElementById('lock-inp'),
+        err=document.getElementById('lock-err'),
+        btn=document.getElementById('lock-btn'),
+        code=inp.value.trim();
+  if(!code){inp.focus();return;}
+  btn.disabled=true;err.textContent='';
+  const base=HEUREKA_CONFIG.APPS_SCRIPT_URL;
+  fetch(base+'?action=getConfig&key=CODE_ACCES_HORAIRE',{redirect:'follow'})
+    .then(r=>r.json())
+    .then(res=>{
+      if(res.status==='ok'&&res.value&&String(res.value).trim()){
+        return String(res.value).trim();
+      }
+      return fetch(base+'?action=getConfig&key=CODE_ACCES',{redirect:'follow'})
+        .then(r2=>r2.json())
+        .then(r2=>r2.status==='ok'?String(r2.value||'').trim():'');
+    })
+    .then(expected=>{
+      if(code===expected){
+        sessionStorage.setItem(SK,JSON.stringify({ts:Date.now()}));
+        unlockApp();
+      }else{
+        err.textContent='Code incorrect. Réessayez.';
+        inp.value='';setTimeout(()=>inp.focus(),50);
+      }
+      btn.disabled=false;
+    })
+    .catch(()=>{err.textContent='Erreur de connexion.';btn.disabled=false;});
+};
+
+// ── UTILS ────────────────────────────────────────────────
+function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function initials(n){return n.trim().split(/\s+/).map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'?';}
+let _toastTimer;
+function toast(msg,type='ok'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.style.borderColor=type==='err'?'rgba(239,68,68,.5)':'rgba(212,175,55,.4)';
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>el.classList.remove('show'),3500);
+}
+
+// ── DATA ─────────────────────────────────────────────────
+let employees=[], chantiers=[];
+
+async function loadData(){
+  try{
+    const [er,cr]=await Promise.all([
+      fetch(HEUREKA_CONFIG.APPS_SCRIPT_URL+'?action=getData&sheet=Employ%C3%A9s',{redirect:'follow'}),
+      fetch(HEUREKA_CONFIG.APPS_SCRIPT_URL+'?action=getData&sheet=Chantiers',{redirect:'follow'})
+    ]);
+    const ed=await er.json(), cd=await cr.json();
+    if(ed.status==='ok'&&Array.isArray(ed.data)){
+      employees=ed.data
+        .filter(r=>r['ID_Employé']&&(r.Statut||'').toLowerCase()==='actif')
+        .map(r=>({
+          id:r['ID_Employé']||'',
+          prenom:r['Prénom']||'',
+          nom:r['Nom']||'',
+          role:r['Rôle']||'',
+          telephone:r['Téléphone']||'',
+        }));
+    }
+    if(cd.status==='ok'&&Array.isArray(cd.data)){
+      chantiers=cd.data
+        .filter(r=>r.ID_Chantier&&(r.Statut||'').toLowerCase()==='actif')
+        .map(r=>({id:r.ID_Chantier,nom:r.Nom_Chantier||''}));
+    }
+    document.getElementById('sync-lbl').textContent='✓ '+new Date().toLocaleTimeString('fr-CA',{hour:'2-digit',minute:'2-digit'});
+    renderList();
+  }catch(e){
+    document.getElementById('sync-lbl').textContent='⚠ Hors ligne';
+    renderList();
+  }
+}
+
+// ── STATE ────────────────────────────────────────────────
+let state={};
+function st(empId){
+  if(!state[empId])state[empId]={on:false,chantierId:'',debut:'07:00',fin:'16:00',notes:''};
+  return state[empId];
+}
+
+// ── RENDER ───────────────────────────────────────────────
+function renderList(){
+  const el=document.getElementById('emp-list');
+  if(!employees.length){
+    el.innerHTML=`<div class="empty"><div class="empty-ico">👷</div><div class="empty-txt">Aucun employé actif trouvé</div></div>`;
+    document.getElementById('emp-lbl').textContent='Aucun employé';
+    updateBtn();return;
+  }
+  document.getElementById('emp-lbl').textContent=`${employees.length} employé${employees.length>1?'s':''} actifs`;
+  const chanOpts=chantiers.map(c=>`<option value="${c.id}">${c.nom}</option>`).join('');
+  el.innerHTML=employees.map(emp=>{
+    const s=st(emp.id);
+    const full=(emp.prenom+' '+emp.nom).trim();
+    return `<div class="emp-card${s.on?' on':''}" id="card-${emp.id}">
+      <div class="emp-header">
+        <div class="emp-avatar">${initials(full)}</div>
+        <div class="emp-info">
+          <div class="emp-name">${full}</div>
+          <div class="emp-role">${emp.role||'Employé'}</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="tog-${emp.id}" ${s.on?'checked':''} onchange="onToggle('${emp.id}')">
+          <span class="toggle-sl"></span>
+        </label>
+      </div>
+      <div class="emp-fields" id="fld-${emp.id}" style="${s.on?'':'display:none'}">
+        <div class="fl">
+          <label>Chantier</label>
+          <select class="fc" id="chan-${emp.id}" onchange="onFld('${emp.id}','chantierId',this.value)">
+            <option value="">— Choisir un chantier —</option>
+            ${chanOpts}
+          </select>
+        </div>
+        <div class="time-row">
+          <div class="fl">
+            <label>Début</label>
+            <input type="time" class="fc" id="deb-${emp.id}" value="${s.debut}" onchange="onFld('${emp.id}','debut',this.value)">
+          </div>
+          <div class="fl">
+            <label>Fin</label>
+            <input type="time" class="fc" id="fin-${emp.id}" value="${s.fin}" onchange="onFld('${emp.id}','fin',this.value)">
+          </div>
+        </div>
+        <div class="fl">
+          <label>Notes (optionnel)</label>
+          <input type="text" class="fc" id="not-${emp.id}" value="${s.notes}" placeholder="Ex: apporter outils..." oninput="onFld('${emp.id}','notes',this.value)">
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  // Restore chantier values
+  employees.forEach(emp=>{
+    const s=st(emp.id);
+    if(s.chantierId){const sel=document.getElementById('chan-'+emp.id);if(sel)sel.value=s.chantierId;}
+  });
+  updateBtn();
+}
+
+function onToggle(empId){
+  const s=st(empId);
+  s.on=document.getElementById('tog-'+empId).checked;
+  document.getElementById('fld-'+empId).style.display=s.on?'':'none';
+  document.getElementById('card-'+empId).classList.toggle('on',s.on);
+  updateBtn();
+}
+function onFld(empId,field,val){st(empId)[field]=val;updateBtn();}
+function updateBtn(){
+  const n=employees.filter(e=>st(e.id).on).length;
+  document.getElementById('btn-send').disabled=n===0;
+  document.getElementById('send-sub').textContent=n>0?`${n} employé${n>1?'s':''} sélectionné${n>1?'s':''}` :'';
+}
+
+// ── DATE ─────────────────────────────────────────────────
+function setToday(){document.getElementById('hor-date').value=todayStr();}
+
+// ── SEND ─────────────────────────────────────────────────
+function fmtDateFr(s){if(!s)return s;const p=s.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
+function cleanPhone(p){return p.replace(/\D/g,'');}
+function buildSmsBody(emp,chan,debut,fin,notes,dateFr){
+  return `Bonjour ${emp.prenom},\n\nVoici votre horaire pour le ${dateFr} :\n\n📍 Chantier : ${chan||'—'}\n🕖 Début : ${debut}\n🕔 Fin : ${fin}${notes?'\n📝 Notes : '+notes:''}\n\nBonne journée !\n— Heuréka Construction\n450-346-1486`;
+}
+
+async function sendHoraires(){
+  const date=document.getElementById('hor-date').value;
+  if(!date){toast('Choisissez une date.','err');return;}
+  const active=employees.filter(e=>st(e.id).on);
+  if(!active.length){toast('Aucun employé sélectionné.','err');return;}
+
+  const btn=document.getElementById('btn-send');
+  btn.disabled=true;btn.textContent='⏳ Préparation...';
+
+  const horaires=active.map(emp=>{
+    const s=st(emp.id);
+    const chan=chantiers.find(c=>c.id===s.chantierId)||{nom:''};
+    return {empId:emp.id,empPrenom:emp.prenom,empNom:emp.nom,chantierId:s.chantierId,chantierNom:chan.nom,heureDebut:s.debut,heureFin:s.fin,notes:s.notes||''};
+  });
+
+  // Sauvegarde Planning en arrière-plan (silencieux)
+  fetch(HEUREKA_CONFIG.APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'saveHoraire',date,horaires}),redirect:'follow'}).catch(()=>{});
+
+  // Afficher écran SMS
+  showSmsScreen(date, active, horaires);
+
+  btn.textContent='📤 Envoyer les horaires';
+  updateBtn();
+}
+
+function showSmsScreen(date, active, horaires){
+  const dateFr=fmtDateFr(date);
+  const items=active.map((emp,i)=>{
+    const h=horaires[i];
+    const phone=cleanPhone(emp.telephone);
+    const body=encodeURIComponent(buildSmsBody(emp,h.chantierNom,h.heureDebut,h.heureFin,h.notes,dateFr));
+    const smsLink=phone?`sms:+1${phone}?&body=${body}`:'';
+    const hasTel=!!phone;
+    return `<div style="background:var(--bg3);border:1px solid var(--bdr);border-radius:var(--rad);padding:14px 16px;display:flex;align-items:center;gap:12px">
+      <div style="width:40px;height:40px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--gold);flex-shrink:0">${initials((emp.prenom+' '+emp.nom).trim())}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:700">${emp.prenom} ${emp.nom}</div>
+        <div style="font-size:11px;color:var(--txt2);margin-top:2px">${emp.telephone||'Aucun numéro'}</div>
+      </div>
+      ${hasTel
+        ?`<a href="${smsLink}" style="background:linear-gradient(135deg,#D4AF37,#B8960C);color:#000;font-size:13px;font-weight:800;padding:10px 14px;border-radius:var(--rad2);text-decoration:none;white-space:nowrap;flex-shrink:0">📱 SMS</a>`
+        :`<span style="font-size:11px;color:var(--red);flex-shrink:0">Pas de tél.</span>`
+      }
+    </div>`;
+  }).join('');
+
+  const overlay=document.createElement('div');
+  overlay.id='sms-overlay';
+  overlay.style.cssText='position:fixed;inset:0;z-index:9000;background:var(--bg);display:flex;flex-direction:column';
+  overlay.innerHTML=`
+    <div style="background:var(--bg2);border-bottom:1px solid var(--bdr);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:1">
+      <button onclick="closeSmsScreen()" style="background:var(--bg3);border:1px solid var(--bdr);border-radius:var(--rad2);padding:8px 14px;color:var(--txt);font-size:13px;font-weight:700;cursor:pointer">← Retour</button>
+      <div style="flex:1;font-size:16px;font-weight:800;color:var(--gold)">📱 Envoyer par SMS</div>
+      <div style="font-size:11px;color:var(--txt2)">${dateFr}</div>
+    </div>
+    <div style="padding:14px 16px;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-bottom:80px">
+      <div style="font-size:11px;color:var(--txt2);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Appuyez sur chaque bouton pour ouvrir votre messagerie</div>
+      ${items}
+    </div>
+    <div style="position:fixed;bottom:0;left:0;right:0;padding:12px 16px 16px;background:rgba(10,10,10,.97);border-top:1px solid var(--bdr)">
+      <button onclick="closeSmsScreen(true)" style="width:100%;padding:16px;background:var(--bg3);border:1px solid rgba(212,175,55,.3);border-radius:var(--rad);color:var(--gold);font-size:15px;font-weight:800;cursor:pointer">✅ Terminé — Fermer</button>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function closeSmsScreen(done){
+  const el=document.getElementById('sms-overlay');if(el)el.remove();
+  if(done){state={};renderList();toast('Horaires sauvegardés ✓');}
+}
+
+// ── INIT ─────────────────────────────────────────────────
+if(validSession())unlockApp();
+setToday();
+loadData();
+setInterval(loadData, HEUREKA_CONFIG.SYNC_INTERVAL_MS);
+</script>
+</body>
+</html>
