@@ -1093,6 +1093,24 @@ function jobStatusBadge(s) {
   const l={actif:'Actif',pause:'En pause',termine:'Terminé',a_programmer:'À programmer'};
   return `<span class="badge ${m[s]||'b-gray'}">${l[s]||s}</span>`;
 }
+function jobStatusSelect(j){
+  const m={actif:'b-green',pause:'b-orange',termine:'b-gray',a_programmer:'b-blue'};
+  return `<select class="badge ${m[j.status]||'b-gray'}" onchange="changeJobStatus('${j.id}',this.value)" style="cursor:pointer;border:none;outline:none;font-weight:600;font-size:12px">
+    <option value="actif"${j.status==='actif'?' selected':''}>🟡 Actif</option>
+    <option value="a_programmer"${j.status==='a_programmer'?' selected':''}>🔵 À programmer</option>
+    <option value="pause"${j.status==='pause'?' selected':''}>🟠 En pause</option>
+    <option value="termine"${j.status==='termine'?' selected':''}>✅ Terminé</option>
+  </select>`;
+}
+function changeJobStatus(jobId, newStatus){
+  const jobs=DB.get('jobs');
+  const idx=jobs.findIndex(j=>j.id===jobId);
+  if(idx<0) return;
+  jobs[idx].status=newStatus;
+  DB.set('jobs',jobs);
+  _sheetPost({action:'saveJob',job:jobs[idx]});
+  renderJobsTable(jobs);
+}
 function populateSelect(selId, items, valKey, lblFn, placeholder) {
   const sel = document.getElementById(selId);
   if(!sel) return;
@@ -1280,7 +1298,7 @@ function renderJobsTable(jobs) {
       <td><div style="font-weight:700">${j.name}</div><div style="font-size:11px;color:var(--txt2)">${j.notes||''}</div></td>
       <td>${j.client}</td>
       <td style="font-size:12px">${j.address}</td>
-      <td>${jobStatusBadge(j.status)}</td>
+      <td>${jobStatusSelect(j)}</td>
       <td style="font-size:12px">${fmt(j.start)}</td>
       <td style="font-size:12px">${fmt(j.end)}</td>
       <td>${j.isFixedLocation?`<span class="badge b-blue">📍 Lieu fixe · ${j.fixedTeam==='bureau'?'Bureau':'Chantier'}</span>`:`<span class="badge b-${empCount>0?'green':'gray'}">${empCount} présent${empCount>1?'s':''}</span>`}</td>
