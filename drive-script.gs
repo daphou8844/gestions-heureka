@@ -527,15 +527,31 @@ function handleUploadFile(data) {
  *         punches:[{ empId, empName, date, punchIn, punchOut, heures }] }
  */
 function createWeeklyReport(data) {
-  // 1. Trouver le dossier cible (best effort — ne jamais bloquer la création du doc)
+  // 1. Trouver ou CRÉER le dossier Drive du chantier
   var driveId = data.driveId || _findChantierDriveId(data.jobId, data.jobName);
+  var newDriveId = null, newDriveUrl = null;
   var heuresFolder = null;
+
+  if (!driveId) {
+    // Aucun dossier lié — on le crée automatiquement
+    try {
+      var created = createChantierDriveFolder(data.jobName || 'Chantier', '', data.jobId || '');
+      driveId   = created.driveId;
+      newDriveId  = created.driveId;
+      newDriveUrl = created.driveUrl;
+      Logger.log('Dossier Drive créé auto pour ' + data.jobName + ' : ' + driveId);
+    } catch(e) {
+      Logger.log('Création dossier auto échouée: ' + e);
+    }
+  }
 
   if (driveId) {
     try { heuresFolder = getChantierSubfolder(driveId, 'Heures'); } catch(e) {
       Logger.log('getChantierSubfolder: ' + e);
     }
   }
+
+  // Fallback ultime : dossier RH & Paie
   if (!heuresFolder) {
     try {
       var root = _driveRoot();
@@ -634,7 +650,7 @@ function createWeeklyReport(data) {
   }
 
   var docUrl = 'https://docs.google.com/document/d/' + docId;
-  return { docId:docId, docUrl:docUrl, docName:docName, inFolder:inFolder };
+  return { docId:docId, docUrl:docUrl, docName:docName, inFolder:inFolder, newDriveId:newDriveId, newDriveUrl:newDriveUrl };
 }
 
 function handleApproveWeekPunchs(data) {
@@ -648,7 +664,7 @@ function handleApproveWeekPunchs(data) {
           jobId: ch.jobId, jobName: ch.jobName, driveId: ch.driveId,
           punches: ch.punches
         });
-        reports.push({ jobId:ch.jobId, jobName:ch.jobName, docUrl:r.docUrl, docName:r.docName, inFolder:r.inFolder });
+        reports.push({ jobId:ch.jobId, jobName:ch.jobName, docUrl:r.docUrl, docName:r.docName, inFolder:r.inFolder, newDriveId:r.newDriveId||null, newDriveUrl:r.newDriveUrl||null });
       } catch(e) {
         Logger.log('createWeeklyReport error for '+ch.jobName+': '+e);
         errors.push(ch.jobName + ': ' + e.toString());

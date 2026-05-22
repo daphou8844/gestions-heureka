@@ -1761,7 +1761,17 @@ async function approveWeek() {
     renderPunchsTable();
     const banner=document.getElementById('approval-banner');
     if(data.status==='ok'&&data.reports?.length){
-      const links=data.reports.map(r=>`<a href="${r.docUrl}" target="_blank" style="color:#4CAF50;font-weight:700">${r.jobName}</a> <span style="font-size:10px;opacity:.7">(📁 ${r.inFolder||'Drive'})</span>`).join('<br>');
+      // Mettre à jour driveId dans localStorage si un dossier a été créé automatiquement
+      const jobs=DB.get('jobs');
+      let jobsChanged=false;
+      data.reports.forEach(r=>{
+        if(r.newDriveId){
+          const j=jobs.find(x=>x.id===r.jobId);
+          if(j){j.driveId=r.newDriveId;j.driveUrl=r.newDriveUrl;jobsChanged=true;}
+        }
+      });
+      if(jobsChanged){DB.set('jobs',jobs);if(currentPanel==='jobs')renderJobs();}
+      const links=data.reports.map(r=>`<a href="${r.docUrl}" target="_blank" style="color:#4CAF50;font-weight:700">${r.jobName}</a>${r.newDriveId?` <span style="font-size:10px;color:#D4AF37">📁 Dossier Drive créé</span>`:''} <span style="font-size:10px;opacity:.6">(${r.inFolder||'Drive'})</span>`).join('<br>');
       const errHtml=data.errors?.length?`<div style="margin-top:6px;color:#e74c3c;font-size:11px">⚠ Erreurs: ${data.errors.join(' | ')}</div>`:'';
       banner.innerHTML=`✓ ${data.reports.length} rapport${data.reports.length>1?'s':''} créé${data.reports.length>1?'s':''} :<br>${links}${errHtml}`;
       banner.style.display='';
