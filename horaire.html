@@ -272,7 +272,7 @@ async function loadData(){
         .filter(r=>r.id&&r.active==='1')
         .map(r=>{
           const loc=localEmps.find(e=>e.id===r.id)||{};
-          const teamType=r.teamType||loc.teamType||'chantier';
+          const teamType=loc.teamType||r.teamType||'chantier';
           return {id:r.id,prenom:r.fname||'',nom:r.lname||'',role:r.role||'',telephone:r.phone||'',teamType};
         })
         .filter(e=>e.teamType!=='bureau');
