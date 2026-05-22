@@ -730,37 +730,9 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
         <label>Employés</label>
         <div id="plan-emp-grid" class="hor-emp-grid" style="margin-top:4px"></div>
       </div>
-      <div class="fg"><label>Date</label><input type="date" id="shift-date"></div>
       <div class="fgrid">
-        <div class="fg"><label>Début</label><input type="time" id="shift-start" value="07:00"></div>
-        <div class="fg"><label>Fin</label><input type="time" id="shift-end" value="16:00"></div>
-      </div>
-      <div class="fg">
-        <label>Répétition</label>
-        <div style="display:flex;gap:14px">
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
-            <input type="radio" name="shift-repeat" value="once" checked onchange="onShiftRepeatChange()"> Une seule fois
-          </label>
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
-            <input type="radio" name="shift-repeat" value="repeat" onchange="onShiftRepeatChange()"> Jours spécifiques
-          </label>
-        </div>
-      </div>
-      <div id="shift-repeat-wrap" style="display:none;flex-direction:column;gap:12px;padding:12px;background:var(--bg2);border-radius:var(--rad2);border:1px solid var(--bdr)">
-        <div>
-          <div style="font-size:10px;color:var(--txt2);font-weight:700;letter-spacing:.5px;margin-bottom:8px">JOURS DE RÉPÉTITION</div>
-          <div style="display:flex;gap:6px">
-            <label class="day-tog"><input type="checkbox" name="shift-day" value="1" style="display:none"> Lun</label>
-            <label class="day-tog"><input type="checkbox" name="shift-day" value="2" style="display:none"> Mar</label>
-            <label class="day-tog"><input type="checkbox" name="shift-day" value="3" style="display:none"> Mer</label>
-            <label class="day-tog"><input type="checkbox" name="shift-day" value="4" style="display:none"> Jeu</label>
-            <label class="day-tog"><input type="checkbox" name="shift-day" value="5" style="display:none"> Ven</label>
-          </div>
-        </div>
-        <div class="fg" style="margin:0">
-          <label>Date de fin <span style="color:var(--txt2);font-size:10px;font-weight:400">(optionnelle — vide = 13 semaines)</span></label>
-          <input type="date" id="shift-repeat-end">
-        </div>
+        <div class="fg"><label>Date de début</label><input type="date" id="shift-date-start"></div>
+        <div class="fg"><label>Date de fin</label><input type="date" id="shift-date-end"></div>
       </div>
       <div class="fg"><label>Note (optionnel)</label><textarea id="shift-note" placeholder="Instructions spéciales pour l'équipe..." style="min-height:52px"></textarea></div>
     </div>
@@ -1252,12 +1224,9 @@ function openModal(id) {
   if(id==='modal-shift') {
     document.getElementById('shift-edit-id').value='';
     document.getElementById('shift-delete-btn').style.display='none';
-    document.getElementById('shift-date').value=today();
-    document.querySelector('input[name="shift-repeat"][value="once"]').checked=true;
-    document.querySelectorAll('input[name="shift-day"]').forEach(c=>c.checked=false);
-    document.getElementById('shift-repeat-end').value='';
+    document.getElementById('shift-date-start').value=today();
+    document.getElementById('shift-date-end').value=today();
     document.getElementById('shift-note').value='';
-    onShiftRepeatChange();
     const jobs=DB.get('jobs').filter(j=>j.status==='actif'&&!j.isFixedLocation);
     populateSelect('shift-job',jobs,'id',j=>j.name,'Sélectionner un chantier...');
     onPlanChanChange();
@@ -1434,8 +1403,8 @@ function openShiftCell(empId, date) {
   document.getElementById('shift-edit-id').value='';
   document.getElementById('shift-delete-btn').style.display='none';
   openModal('modal-shift');
-  document.getElementById('shift-date').value=date;
-  if(empId) { document.getElementById('shift-emp').value=empId; onShiftEmpChange(); }
+  document.getElementById('shift-date-start').value=date;
+  document.getElementById('shift-date-end').value=date;
 }
 
 function openShiftEdit(id) {
@@ -1444,11 +1413,8 @@ function openShiftEdit(id) {
   if(!s) return;
   document.getElementById('shift-edit-id').value=id;
   document.getElementById('shift-delete-btn').style.display='';
-  document.getElementById('shift-date').value=s.date;
-  document.getElementById('shift-start').value=s.start||'07:00';
-  document.getElementById('shift-end').value=s.end||'16:00';
-  document.querySelector('input[name="shift-repeat"][value="once"]').checked=true;
-  document.getElementById('shift-repeat-wrap').style.display='none';
+  document.getElementById('shift-date-start').value=s.date||today();
+  document.getElementById('shift-date-end').value=s.date||today();
   const jobs=DB.get('jobs').filter(j=>j.status==='actif'&&!j.isFixedLocation);
   populateSelect('shift-job',jobs,'id',j=>j.name,'');
   setTimeout(()=>{ document.getElementById('shift-job').value=s.jobId; onPlanChanChange(); },50);
@@ -1499,43 +1465,28 @@ function onPlanChanChange() {
       </div>`).join('')
     :'<div style="color:var(--txt2);font-size:12px;padding:8px;grid-column:1/-1">Aucun employé disponible</div>';
 }
-function onShiftRepeatChange() {
-  const isRepeat=document.querySelector('input[name="shift-repeat"]:checked').value==='repeat';
-  document.getElementById('shift-repeat-wrap').style.display=isRepeat?'flex':'none';
-}
 function savePlanning() {
   const jobId=document.getElementById('shift-job').value;
   if(!jobId){toast('Sélectionner un chantier','err');return;}
   const empIds=[...document.querySelectorAll('input[name="plan-emp"]:checked')].map(c=>c.value);
   if(!empIds.length){toast('Sélectionner au moins un employé','err');return;}
-  const date=document.getElementById('shift-date').value;
-  const start=document.getElementById('shift-start').value;
-  const end=document.getElementById('shift-end').value;
+  const dateStart=document.getElementById('shift-date-start').value;
+  const dateEnd=document.getElementById('shift-date-end').value;
   const note=document.getElementById('shift-note').value.trim();
-  if(!date){toast('Choisir une date','err');return;}
-  const isRepeat=document.querySelector('input[name="shift-repeat"]:checked').value==='repeat';
-  let dates=[date];
-  if(isRepeat){
-    const days=[...document.querySelectorAll('input[name="shift-day"]:checked')].map(c=>parseInt(c.value));
-    if(!days.length){toast('Cochez au moins un jour','err');return;}
-    const endStr=document.getElementById('shift-repeat-end').value;
-    const [sy,sm,sd]=date.split('-').map(Number);
-    const startD=new Date(sy,sm-1,sd);
-    let endD;
-    if(endStr){const[ey,em,ed]=endStr.split('-').map(Number);endD=new Date(ey,em-1,ed);}
-    else{endD=new Date(sy,sm-1,sd+13*7);}
-    dates=[];
-    const cur=new Date(startD);
-    while(cur<=endD&&dates.length<500){if(days.includes(cur.getDay()))dates.push(isoDate(cur));cur.setDate(cur.getDate()+1);}
-    if(!dates.length){toast('Aucun jour correspond','err');return;}
-  }
+  if(!dateStart||!dateEnd){toast('Choisir les dates','err');return;}
+  if(dateEnd<dateStart){toast('Date de fin avant date de début','err');return;}
+  const dates=[];
+  const [sy,sm,sd]=dateStart.split('-').map(Number);
+  const [ey,em,ed]=dateEnd.split('-').map(Number);
+  const cur=new Date(sy,sm-1,sd), endD=new Date(ey,em-1,ed);
+  while(cur<=endD&&dates.length<500){dates.push(isoDate(cur));cur.setDate(cur.getDate()+1);}
   const shifts=DB.get('shifts');
   const horId=uid();
   const newEntries=[];
   dates.forEach(d=>{
     empIds.forEach(empId=>{
       const dup=shifts.some(x=>x.empId===empId&&x.jobId===jobId&&x.date===d);
-      if(!dup){const s={id:uid(),empId,jobId,date:d,start,end,horaireId:horId};shifts.push(s);newEntries.push(s);}
+      if(!dup){const s={id:uid(),empId,jobId,date:d,horaireId:horId};shifts.push(s);newEntries.push(s);}
     });
   });
   DB.set('shifts',shifts);
@@ -1548,8 +1499,7 @@ function savePlanning() {
       const res=await fetch(HEUREKA_CONFIG.APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({
         action:'addRow',sheet:'Planning',
         data:{Horaire_ID:s.horaireId,Employé_ID:s.empId,Chantier_ID:s.jobId,
-          Date:s.date,Heure_Début:s.start,Heure_Fin:s.end,
-          Note:note,'Horaire_Envoyé':'Non','Horaire_Envoyé_Le':''}
+          Date:s.date,Note:note,'Horaire_Envoyé':'Non','Horaire_Envoyé_Le':''}
       }),redirect:'follow'});
       const d=await res.json();
       if(d.status==='ok'&&d.id){
@@ -2299,8 +2249,7 @@ async function autoSyncPlanning(){
     sheetRows.forEach(r=>{
       if(!localPids.has(r.ID_Planning)){
         filtered.push({id:r.ID_Planning,empId:r.Employé_ID,jobId:r.Chantier_ID,
-          date:r.Date||'',start:r.Heure_Début||'',end:r.Heure_Fin||'',
-          horaireId:r.Horaire_ID||'',planningId:r.ID_Planning});
+          date:r.Date||'',horaireId:r.Horaire_ID||'',planningId:r.ID_Planning});
       }
     });
     DB.set('shifts',filtered);
