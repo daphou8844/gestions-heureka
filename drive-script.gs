@@ -264,8 +264,8 @@ function getChantierSubfolder(driveId, subfolderName) {
 // ── RAPPORT DE TEMPS — depuis punch.html ─────────────────────
 
 /**
- * Cherche le Drive_ID d'un chantier dans l'onglet Chantiers.
- * Essaie d'abord par ID exact, puis par nom partiel.
+ * Cherche le Drive_ID d'un chantier dans l'onglet Chantiers (colonne Drive_ID).
+ * Essaie d'abord par ID_Chantier exact, puis par nom partiel.
  */
 function _findChantierDriveId(jobId, jobName) {
   try {
@@ -300,6 +300,49 @@ function _findChantierDriveId(jobId, jobName) {
 }
 
 /**
+ * Cherche un dossier chantier DIRECTEMENT dans Drive par préfixe jobId.
+ * Parcourt 01 - Chantiers → [toutes les années] → cherche un dossier
+ * dont le nom commence par jobId (ex: "CHAN-007").
+ * Retourne l'ID du dossier ou null.
+ */
+function _searchDriveFolderByJobId(jobId) {
+  if (!jobId) return null;
+  try {
+    var root = _driveRoot();
+    var chanIt = root.getFoldersByName(DRIVE_FOLDER_NAMES.CHANTIERS);
+    if (!chanIt.hasNext()) return null;
+    var chantiersFolder = chanIt.next();
+
+    // Chercher dans les sous-dossiers année (2024, 2025, 2026...)
+    var yearIt = chantiersFolder.getFolders();
+    while (yearIt.hasNext()) {
+      var yearFolder = yearIt.next();
+      var subIt = yearFolder.getFolders();
+      while (subIt.hasNext()) {
+        var sub = subIt.next();
+        if (sub.getName().indexOf(jobId) === 0) {
+          Logger.log('_searchDriveFolderByJobId: trouvé "' + sub.getName() + '" pour jobId=' + jobId);
+          return sub.getId();
+        }
+      }
+    }
+
+    // Chercher aussi directement dans 01 - Chantiers (sans sous-dossier année)
+    var directIt = chantiersFolder.getFolders();
+    while (directIt.hasNext()) {
+      var f = directIt.next();
+      if (f.getName().indexOf(jobId) === 0) {
+        Logger.log('_searchDriveFolderByJobId: trouvé direct "' + f.getName() + '" pour jobId=' + jobId);
+        return f.getId();
+      }
+    }
+  } catch(e) {
+    Logger.log('_searchDriveFolderByJobId: ' + e);
+  }
+  return null;
+}
+
+/**
  * Crée un Google Doc de rapport dans 📁 Heures du chantier Drive.
  * Fallback: 📁 03 - RH & Paie / Heures Ponctuels si le chantier n'est pas lié.
  *
@@ -308,8 +351,8 @@ function _findChantierDriveId(jobId, jobName) {
  *         notes, rapport:{travaux,problemes,materiaux} }
  */
 function createPunchReport(data) {
-  // 1. Trouver le dossier Heures (driveId direct en priorité)
-  var driveId = data.driveId || _findChantierDriveId(data.jobId, data.jobName);
+  // 1. Trouver le dossier Heures (driveId direct → Sheet → Drive par préfixe jobId)
+  var driveId = data.driveId || _findChantierDriveId(data.jobId, data.jobName) || _searchDriveFolderByJobId(data.jobId);
   var heuresFolder;
 
   if (driveId) {
@@ -550,12 +593,15 @@ function handleUploadFile(data) {
  */
 function createWeeklyReport(data) {
   // 1. Trouver ou CRÉER le dossier Drive du chantier
-  var driveId = data.driveId || _findChantierDriveId(data.jobId, data.jobName);
+  // Priorité : driveId fourni → Sheet → recherche Drive par préfixe jobId → création
+  var driveId = data.driveId
+    || _findChantierDriveId(data.jobId, data.jobName)
+    || _searchDriveFolderByJobId(data.jobId);
   var newDriveId = null, newDriveUrl = null;
   var heuresFolder = null;
 
   if (!driveId) {
-    // Aucun dossier lié — on le crée automatiquement
+    // Aucun dossier trouvé nulle part — on le crée automatiquement
     try {
       var created = createChantierDriveFolder(data.jobName || 'Chantier', '', data.jobId || '');
       driveId   = created.driveId;
@@ -568,7 +614,7 @@ function createWeeklyReport(data) {
   }
 
   if (driveId) {
-    // Synchroniser le Drive_ID dans le Sheet si pas déjà fait
+    // Synchroniser le Drive_ID dans le Sheet (qu'il vienne du Sheet, Drive ou création)
     if (!newDriveId) {
       _updateChantierDriveId(data.jobId, driveId, 'https://drive.google.com/drive/folders/'+driveId);
     }
