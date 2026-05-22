@@ -134,6 +134,28 @@ function createChantierDriveFolder(clientNom, ville, projetId) {
   return { chanId: chanId, driveId: driveId, driveUrl: driveUrl };
 }
 
+// Met à jour Drive_ID dans l'onglet Chantiers par ID_Chantier direct
+function _updateChantierDriveId(jobId, driveId, driveUrl) {
+  try {
+    var sheet = _ss().getSheetByName('Chantiers');
+    if (!sheet) return;
+    var data = sheet.getDataRange().getValues();
+    var h = data[0].map(function(x){ return x.toString().trim(); });
+    var idCol     = h.indexOf('ID_Chantier');
+    var driveIdCol  = h.indexOf('Drive_ID');
+    var driveUrlCol = h.indexOf('Drive_URL');
+    if (idCol < 0 || driveIdCol < 0) return;
+    for (var i = 1; i < data.length; i++) {
+      if ((data[i][idCol]||'').toString().trim() === jobId) {
+        sheet.getRange(i+1, driveIdCol+1).setValue(driveId);
+        if (driveUrlCol >= 0) sheet.getRange(i+1, driveUrlCol+1).setValue(driveUrl||'');
+        Logger.log('Drive_ID mis à jour pour ' + jobId);
+        return;
+      }
+    }
+  } catch(e) { Logger.log('_updateChantierDriveId: ' + e); }
+}
+
 // Sauvegarde Drive_ID et Drive_URL dans l'onglet Chantiers
 function _saveDriveIdToSheet(projetId, chanId, driveId, driveUrl) {
   try {
@@ -546,6 +568,10 @@ function createWeeklyReport(data) {
   }
 
   if (driveId) {
+    // Synchroniser le Drive_ID dans le Sheet si pas déjà fait
+    if (!newDriveId) {
+      _updateChantierDriveId(data.jobId, driveId, 'https://drive.google.com/drive/folders/'+driveId);
+    }
     try { heuresFolder = getChantierSubfolder(driveId, 'Heures'); } catch(e) {
       Logger.log('getChantierSubfolder: ' + e);
     }
