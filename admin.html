@@ -1263,6 +1263,12 @@ function renderJobsTable(jobs) {
     j.name.toLowerCase().includes(jobFilter)||j.client.toLowerCase().includes(jobFilter)||j.address.toLowerCase().includes(jobFilter)
   );
   if(jobStatusFilter) filtered = filtered.filter(j=>j.status===jobStatusFilter);
+  const STATUS_ORDER={actif:0,a_programmer:1,pause:2,termine:3};
+  filtered=filtered.sort((a,b)=>{
+    const sa=STATUS_ORDER[a.status]??99,sb=STATUS_ORDER[b.status]??99;
+    if(sa!==sb)return sa-sb;
+    return (b.start||'')>(a.start||'')?1:(b.start||'')<(a.start||'')?-1:0;
+  });
   const punchs = DB.get('punchs');
   const t = today();
   const allPhotos = DB.get('photos');
