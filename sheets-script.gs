@@ -182,7 +182,11 @@ function doPost(e) {
 
       // --- Horaire ---
       case 'saveHoraire':
-        result = saveHoraire(data.horaire);
+        if (data.horaires && Array.isArray(data.horaires)) {
+          result = saveHoraireBulk(data.date, data.horaires);
+        } else {
+          result = saveHoraire(data.horaire);
+        }
         break;
       case 'deleteHoraire':
         result = deleteById(SHEETS.HORAIRES, data.id);
@@ -492,6 +496,25 @@ function getHoraires(params) {
     if (params.empId && !h.empIds.includes(params.empId)) return false;
     return true;
   });
+}
+
+function saveHoraireBulk(date, horaires) {
+  var horId = 'HOR-' + Utilities.formatDate(new Date(), 'America/Toronto', 'yyyyMMdd-HHmmss');
+  var saved = 0;
+  for (var i = 0; i < horaires.length; i++) {
+    var h = horaires[i];
+    addRow('Planning', {
+      'Horaire_ID': horId,
+      'Employé_ID': h.empId || '',
+      'Chantier_ID': h.chantierId || '',
+      'Date': date || '',
+      'Heure_Début': h.heureDebut || '',
+      'Heure_Fin': h.heureFin || '',
+      'Note': h.notes || ''
+    });
+    saved++;
+  }
+  return { status: 'ok', saved: saved, message: saved + ' entrée(s) Planning créée(s)' };
 }
 
 function saveHoraire(h) {

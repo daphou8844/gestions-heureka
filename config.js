@@ -16,6 +16,7 @@ const HEUREKA_CONFIG = {
     ADMIN:     'https://daphou8844.github.io/gestions-heureka/admin.html',
     PIPELINE:  'https://daphou8844.github.io/heureka-pipeline/pipeline-heureka.html',
     PUNCH:     'https://daphou8844.github.io/gestions-heureka/punch.html',
-    MARKETING: 'https://daphou8844.github.io/heureka-marketing-app/frontend/index.html'
+    MARKETING: 'https://daphou8844.github.io/heureka-marketing-app/frontend/index.html',
+    HORAIRE:   'https://daphou8844.github.io/gestions-heureka/horaire.html'
   }
 };
