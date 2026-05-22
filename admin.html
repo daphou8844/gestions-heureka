@@ -1761,11 +1761,21 @@ async function approveWeek() {
     renderPunchsTable();
     const banner=document.getElementById('approval-banner');
     if(data.status==='ok'&&data.reports?.length){
-      const links=data.reports.map(r=>`<a href="${r.docUrl}" target="_blank" style="color:#4CAF50;font-weight:700">${r.jobName}</a>`).join(' · ');
-      banner.innerHTML=`✓ ${data.reports.length} rapport${data.reports.length>1?'s':''} créé${data.reports.length>1?'s':''} dans Drive : ${links}`;
+      const links=data.reports.map(r=>`<a href="${r.docUrl}" target="_blank" style="color:#4CAF50;font-weight:700">${r.jobName}</a> <span style="font-size:10px;opacity:.7">(📁 ${r.inFolder||'Drive'})</span>`).join('<br>');
+      const errHtml=data.errors?.length?`<div style="margin-top:6px;color:#e74c3c;font-size:11px">⚠ Erreurs: ${data.errors.join(' | ')}</div>`:'';
+      banner.innerHTML=`✓ ${data.reports.length} rapport${data.reports.length>1?'s':''} créé${data.reports.length>1?'s':''} :<br>${links}${errHtml}`;
+      banner.style.display='';
+    } else if(data.status==='ok'&&data.errors?.length){
+      banner.style.background='rgba(231,76,60,.12)';
+      banner.style.color='#e74c3c';
+      banner.style.borderColor='rgba(231,76,60,.3)';
+      banner.innerHTML=`⚠ Erreur Drive — ${data.errors.join(' | ')}`;
       banner.style.display='';
     } else {
-      banner.innerHTML=`✓ ${toApprove.length} punchs approuvés localement (Drive : ${data.message||'vérifier Apps Script'})`;
+      banner.style.background='rgba(231,76,60,.12)';
+      banner.style.color='#e74c3c';
+      banner.style.borderColor='rgba(231,76,60,.3)';
+      banner.innerHTML=`⚠ ${data.message||'Apps Script non redéployé ou action inconnue — redéploie avec Nouvelle version'}`;
       banner.style.display='';
     }
     toast('Semaine approuvée ✓','ok');

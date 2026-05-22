@@ -527,23 +527,29 @@ function handleUploadFile(data) {
  *         punches:[{ empId, empName, date, punchIn, punchOut, heures }] }
  */
 function createWeeklyReport(data) {
+  // 1. Trouver le dossier cible (best effort — ne jamais bloquer la création du doc)
   var driveId = data.driveId || _findChantierDriveId(data.jobId, data.jobName);
-  var heuresFolder;
-  if (driveId) {
-    heuresFolder = getChantierSubfolder(driveId, 'Heures');
-  } else {
-    var root = _driveRoot();
-    var rhFolder = _getOrCreateFolder(root, DRIVE_FOLDER_NAMES.RH_PAIE);
-    heuresFolder = _getOrCreateFolder(rhFolder, 'Heures Ponctuels');
-  }
-  if (!heuresFolder) throw new Error('Impossible d\'accéder au dossier Heures');
+  var heuresFolder = null;
 
-  var docName = 'Heures_Semaine_' + (data.weekStart||'') + '_' + (data.jobId||'CHANTIER');
+  if (driveId) {
+    try { heuresFolder = getChantierSubfolder(driveId, 'Heures'); } catch(e) {
+      Logger.log('getChantierSubfolder: ' + e);
+    }
+  }
+  if (!heuresFolder) {
+    try {
+      var root = _driveRoot();
+      var rhFolder = _getOrCreateFolder(root, DRIVE_FOLDER_NAMES.RH_PAIE);
+      heuresFolder = _getOrCreateFolder(rhFolder, 'Heures Ponctuels');
+    } catch(e) {
+      Logger.log('RH fallback folder: ' + e);
+    }
+  }
+
+  // 2. Créer le doc (toujours dans Mon Drive d'abord)
+  var docName = 'Heures_Semaine_' + (data.weekStart||'') + '_' + (data.jobName||data.jobId||'CHANTIER');
   var doc = DocumentApp.create(docName);
   var docId = doc.getId();
-  var docFile = DriveApp.getFileById(docId);
-  heuresFolder.addFile(docFile);
-  DriveApp.getRootFolder().removeFile(docFile);
 
   var body = doc.getBody();
   body.clear();
@@ -613,13 +619,27 @@ function createWeeklyReport(data) {
   tCellT.setBackgroundColor('#f0f0f0');
 
   doc.saveAndClose();
-  var docUrl = 'https://docs.google.com/document/d/'+docId;
-  return { docId:docId, docUrl:docUrl, docName:docName };
+
+  // 3. Déplacer vers le dossier cible si disponible, sinon reste dans Mon Drive
+  var inFolder = 'Mon Drive (aucun dossier chantier lié)';
+  if (heuresFolder) {
+    try {
+      var docFile = DriveApp.getFileById(docId);
+      heuresFolder.addFile(docFile);
+      try { DriveApp.getRootFolder().removeFile(docFile); } catch(e) {}
+      inFolder = heuresFolder.getName();
+    } catch(e) {
+      Logger.log('Déplacement Drive: ' + e);
+    }
+  }
+
+  var docUrl = 'https://docs.google.com/document/d/' + docId;
+  return { docId:docId, docUrl:docUrl, docName:docName, inFolder:inFolder };
 }
 
 function handleApproveWeekPunchs(data) {
   try {
-    var reports = [];
+    var reports = [], errors = [];
     (data.chantiers||[]).forEach(function(ch) {
       if (!ch.punches || !ch.punches.length) return;
       try {
@@ -628,12 +648,13 @@ function handleApproveWeekPunchs(data) {
           jobId: ch.jobId, jobName: ch.jobName, driveId: ch.driveId,
           punches: ch.punches
         });
-        reports.push({ jobId:ch.jobId, jobName:ch.jobName, docUrl:r.docUrl, docName:r.docName });
+        reports.push({ jobId:ch.jobId, jobName:ch.jobName, docUrl:r.docUrl, docName:r.docName, inFolder:r.inFolder });
       } catch(e) {
         Logger.log('createWeeklyReport error for '+ch.jobName+': '+e);
+        errors.push(ch.jobName + ': ' + e.toString());
       }
     });
-    return { status:'ok', reports:reports };
+    return { status:'ok', reports:reports, errors:errors };
   } catch(e) {
     Logger.log('handleApproveWeekPunchs: '+e);
     return { status:'error', message:e.toString() };
