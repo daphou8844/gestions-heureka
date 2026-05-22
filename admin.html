@@ -2444,10 +2444,19 @@ function renderDriveModal(j) {
   const foot = document.getElementById('drive-modal-foot');
   if (!j.driveId) {
     body.innerHTML = `
-      <div style="text-align:center;padding:24px 0">
-        <div style="font-size:40px;margin-bottom:12px">📁</div>
-        <div style="margin-bottom:16px;color:var(--txt2)">Aucun dossier Drive lié à ce chantier.</div>
-        <button class="btn btn-gold" onclick="createJobDriveFolder('${j.id}')">Créer le dossier Drive</button>
+      <div style="text-align:center;padding:20px 0 14px">
+        <div style="font-size:36px;margin-bottom:10px">📁</div>
+        <div style="margin-bottom:14px;color:var(--txt2)">Aucun dossier Drive lié à ce chantier.</div>
+        <button class="btn btn-gold" onclick="createJobDriveFolder('${j.id}')">Créer un nouveau dossier Drive</button>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--bdr);margin:4px 0 14px">
+      <div>
+        <label style="font-size:12px;color:var(--txt2);display:block;margin-bottom:6px">Ou lier un dossier Drive déjà existant :</label>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="drive-existing-url" placeholder="https://drive.google.com/drive/folders/..." style="flex:1;background:var(--bg3);border:1px solid var(--bdr);border-radius:var(--rad2);padding:8px 10px;color:var(--txt);font-size:12px;outline:none">
+          <button class="btn btn-outline btn-sm" onclick="linkExistingDriveFolder('${j.id}')">Lier</button>
+        </div>
+        <div style="font-size:11px;color:var(--txt2);margin-top:5px">Ouvre le dossier dans Drive → copie l'URL → colle ici</div>
       </div>`;
     foot.innerHTML = `<button class="btn btn-outline" onclick="closeModal('modal-drive')">Fermer</button>`;
     return;
@@ -2496,6 +2505,31 @@ async function createJobDriveFolder(jobId) {
       toast('Dossier Drive créé ✓','ok');
     } else { toast('Erreur: '+(data.message||'Inconnue'),'err'); }
   } catch(e) { toast('Erreur de connexion','err'); }
+}
+
+async function linkExistingDriveFolder(jobId) {
+  const url = (document.getElementById('drive-existing-url')?.value||'').trim();
+  if (!url) { toast('Colle l\'URL du dossier Drive','err'); return; }
+  const m = url.match(/folders\/([a-zA-Z0-9_-]+)/);
+  if (!m) { toast('URL invalide — ouvre le dossier Drive et copie l\'URL depuis la barre d\'adresse','err'); return; }
+  const driveId  = m[1];
+  const driveUrl = 'https://drive.google.com/drive/folders/' + driveId;
+  const jobs = DB.get('jobs');
+  const j = jobs.find(x=>x.id===jobId);
+  if (!j) return;
+  j.driveId  = driveId;
+  j.driveUrl = driveUrl;
+  DB.set('jobs', jobs);
+  // Sync vers le Sheet
+  try {
+    await fetch(HEUREKA_CONFIG.APPS_SCRIPT_URL, {
+      method:'POST', redirect:'follow',
+      body: JSON.stringify({ action:'syncDriveIds', pairs:[{jobId, driveId, driveUrl}] })
+    });
+  } catch(e) {}
+  renderJobs();
+  renderDriveModal(j);
+  toast('Dossier Drive lié ✓ — le rapport d\'heures ira automatiquement dedans','ok');
 }
 
 async function uploadJobDocument() {
