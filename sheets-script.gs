@@ -239,6 +239,9 @@ function doPost(e) {
       case 'approveWeekPunchs':
         result = handleApproveWeekPunchs(data);
         break;
+      case 'syncDriveIds':
+        result = handleSyncDriveIds(data);
+        break;
       case 'uploadFile':
         result = handleUploadFile(data);
         break;

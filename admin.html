@@ -408,8 +408,9 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
         <div><div class="sec-title">Chantiers</div><div class="sec-sub">Gérer vos projets de construction</div></div>
         <button class="btn btn-gold" onclick="openModal('modal-job')">+ Nouveau chantier</button>
       </div>
-      <div class="sync-bar">
+      <div class="sync-bar" style="display:flex;justify-content:space-between;align-items:center">
         <span>🔗 Google Sheets · Sync automatique toutes les 5s</span>
+        <button class="btn btn-outline btn-sm" onclick="syncAllDriveIds()" title="Envoyer tous les Drive_ID du localStorage vers le Sheet Chantiers">📁 Sync Drive IDs → Sheet</button>
       </div>
       <div class="toolbar">
         <div class="srch"><span class="srch-ico">🔍</span><input type="text" placeholder="Rechercher un chantier..." oninput="filterJobs(this.value)"></div>
@@ -1795,6 +1796,27 @@ async function approveWeek() {
     toast('Approuvé localement — Drive hors ligne','info');
   }
 }
+async function syncAllDriveIds() {
+  const jobs=DB.get('jobs').filter(j=>j.driveId);
+  if(!jobs.length){ toast('Aucun chantier avec Drive ID trouvé','info'); return; }
+  const pairs=jobs.map(j=>({jobId:j.id,driveId:j.driveId,driveUrl:j.driveUrl||''}));
+  toast(`Synchronisation de ${pairs.length} Drive IDs...`,'info');
+  try {
+    const res=await fetch(HEUREKA_CONFIG.APPS_SCRIPT_URL,{
+      method:'POST', redirect:'follow',
+      body:JSON.stringify({action:'syncDriveIds', pairs})
+    });
+    const data=await res.json();
+    if(data.status==='ok'){
+      toast(`✓ ${data.updated} Drive ID${data.updated>1?'s':''} synchronisé${data.updated>1?'s':''} vers le Sheet`,'ok');
+    } else {
+      toast('Erreur: '+(data.message||'Apps Script non redéployé'),'err');
+    }
+  } catch(e){
+    toast('Erreur réseau: '+e.message,'err');
+  }
+}
+
 function savePunch() {
   const id=document.getElementById('punch-edit-id').value||uid();
   const p={

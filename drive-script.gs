@@ -703,6 +703,25 @@ function handleApproveWeekPunchs(data) {
   }
 }
 
+// ── SYNC DRIVE IDs DEPUIS LOCALSTORAGE VERS LE SHEET ─────────
+
+function handleSyncDriveIds(data) {
+  try {
+    var pairs = data.pairs || [];
+    var updated = 0;
+    pairs.forEach(function(p) {
+      if (p.jobId && p.driveId) {
+        _updateChantierDriveId(p.jobId, p.driveId, p.driveUrl || '');
+        updated++;
+      }
+    });
+    return { status: 'ok', updated: updated };
+  } catch(e) {
+    Logger.log('handleSyncDriveIds: ' + e);
+    return { status: 'error', message: e.toString() };
+  }
+}
+
 // ── LISTE DES FICHIERS D'UN CHANTIER ─────────────────────────
 
 function listChantierFiles(driveId) {
