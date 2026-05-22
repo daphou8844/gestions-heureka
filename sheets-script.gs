@@ -229,6 +229,20 @@ function doPost(e) {
       case 'uploadFile':
         result = handleUploadFile(data);
         break;
+      case 'createSoumissionFolder':
+        result = handleCreateSoumissionFolder(data);
+        break;
+      case 'moveDossierSoumission':
+        result = handleMoveDossierSoumission(data);
+        break;
+      case 'deleteDocument':
+        handleDeleteDocument(data);
+        result = data.docId ? deleteRow('Documents', data.docId) : { status:'ok' };
+        break;
+
+      case 'updateProjetDossierSOU':
+        result = updateProjetDossierSOU(data);
+        break;
 
       default:
         result = { status: 'error', message: 'Action inconnue: ' + action };
@@ -939,6 +953,49 @@ function initSheets() {
     const sheet = ss.getSheetByName(name);
     if (sheet) ss.setActiveSheet(sheet), ss.moveActiveSheet(i + 1);
   });
+}
+
+// ── Dossier SOU persisté dans le Sheet ───────────────────────────────────────
+
+/**
+ * Persiste Dossier_SOU_ID et Dossier_SOU_URL dans la feuille Projets.
+ * Crée les colonnes si elles n'existent pas encore (auto-migration).
+ * data = { projetId, driveId, driveUrl }
+ */
+function updateProjetDossierSOU(data) {
+  var ss    = _ss();
+  var sheet = ss.getSheetByName('Projets');
+  if (!sheet) return { status: 'error', message: 'Feuille Projets introuvable' };
+
+  var lastCol  = sheet.getLastColumn();
+  var headers  = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h){ return h.toString().trim(); });
+
+  // Créer les colonnes manquantes
+  var souIdCol  = headers.indexOf('Dossier_SOU_ID')  + 1;
+  var souUrlCol = headers.indexOf('Dossier_SOU_URL') + 1;
+
+  if (souIdCol === 0) {
+    souIdCol = lastCol + 1;
+    sheet.getRange(1, souIdCol).setValue('Dossier_SOU_ID')
+         .setBackground('#0a1628').setFontColor('#D4AF37').setFontWeight('bold');
+    lastCol = souIdCol;
+  }
+  if (souUrlCol === 0) {
+    souUrlCol = lastCol + 1;
+    sheet.getRange(1, souUrlCol).setValue('Dossier_SOU_URL')
+         .setBackground('#0a1628').setFontColor('#D4AF37').setFontWeight('bold');
+  }
+
+  // Trouver la ligne du projet
+  var rows = sheet.getRange(1, 1, sheet.getLastRow(), 1).getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] && rows[i][0].toString().trim() === data.projetId) {
+      sheet.getRange(i + 1, souIdCol).setValue(data.driveId  || '');
+      sheet.getRange(i + 1, souUrlCol).setValue(data.driveUrl || '');
+      return { status: 'ok' };
+    }
+  }
+  return { status: 'error', message: 'Projet introuvable: ' + data.projetId };
 
   // Mettre l'onglet Punchs actif
   const punchSheet = ss.getSheetByName(SHEETS.PUNCHS);
