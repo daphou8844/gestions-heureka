@@ -2284,10 +2284,38 @@ function toggleSidebar(){
 }
 if(localStorage.getItem('hk_sb_col')) document.querySelector('.sidebar').classList.add('collapsed');
 
+async function autoSyncPlanning(){
+  try{
+    const res=await fetch(HEUREKA_CONFIG.APPS_SCRIPT_URL+'?action=getData&sheet=Planning',{redirect:'follow'});
+    const d=await res.json();
+    if(d.status!=='ok'||!Array.isArray(d.data))return;
+    const sheetRows=d.data.filter(r=>r.ID_Planning&&r.Employé_ID&&r.Chantier_ID);
+    const sheetIds=new Set(sheetRows.map(r=>r.ID_Planning));
+    const local=DB.get('shifts');
+    // Garder les entrées locales sans planningId (pas encore sync) + celles encore dans le sheet
+    const filtered=local.filter(s=>!s.planningId||sheetIds.has(s.planningId));
+    const localPids=new Map(filtered.filter(s=>s.planningId).map(s=>[s.planningId,s]));
+    // Ajouter les entrées du sheet absentes en local
+    sheetRows.forEach(r=>{
+      if(!localPids.has(r.ID_Planning)){
+        filtered.push({id:r.ID_Planning,empId:r.Employé_ID,jobId:r.Chantier_ID,
+          date:r.Date||'',start:r.Heure_Début||'',end:r.Heure_Fin||'',
+          horaireId:r.Horaire_ID||'',planningId:r.ID_Planning});
+      }
+    });
+    DB.set('shifts',filtered);
+    if(currentPanel==='planning')renderPlanning();
+    if(currentPanel==='horaires')renderHistorique();
+    updateSyncTime_();
+  }catch(e){/*silent*/}
+}
+
 const _SI = HEUREKA_CONFIG.SYNC_INTERVAL_MS;
 setInterval(autoSyncPunchs, _SI);
 setTimeout(autoSyncPunchs, 3000);
 setInterval(autoSyncJobs, _SI);
+setInterval(autoSyncPlanning, _SI);
+setTimeout(autoSyncPlanning, 4000);
 
 // =====================================================
 //  DOCUMENTS DRIVE — chantier
