@@ -44,7 +44,7 @@ const SHEETS = {
 };
 
 const HEADERS = {
-  EQUIPE:      ['ID', 'Prénom', 'Nom', 'Rôle', 'Taux/h ($)', 'Téléphone', 'Email', 'NAS (4 der.)', 'Actif', 'Date ajout'],
+  EQUIPE:      ['ID', 'Prénom', 'Nom', 'Rôle', 'Taux/h ($)', 'Téléphone', 'Email', 'NAS (4 der.)', 'Actif', 'Date ajout', 'Type équipe'],
   JOBS:        ['ID', 'Nom chantier', 'Client', 'Adresse', 'Statut', 'Date début', 'Date fin', 'Budget ($)', 'Contremaître', 'Notes', 'Dernière MAJ'],
   PUNCHS:      ['ID', 'Employé ID', 'Nom employé', 'Job ID', 'Nom chantier', 'Date', 'Punch In', 'Punch Out', 'Heures nettes', 'Pauses (min)', 'Notes', 'Photos #', 'Source', 'Enregistré le'],
   LIVE:        ['Employé ID', 'Nom employé', 'Job ID', 'Nom chantier', 'Statut', 'Punch In', 'Date', 'Dernière MAJ'],
@@ -439,7 +439,7 @@ function saveEmployee(emp) {
     emp.id, emp.fname || '', emp.lname || '', emp.role || '',
     emp.rate || 0, emp.phone || '', emp.email || '', emp.nas || '',
     emp.active === '1' || emp.active === 1 ? 'Oui' : 'Non',
-    now,
+    now, emp.teamType || 'chantier',
   ];
   upsertRow(sheet, emp.id, row);
   return { status: 'ok', message: 'Employé enregistré' };
@@ -582,15 +582,16 @@ function horaireToRow(h) {
 
 function employeeFromRow(row, headers) {
   return {
-    id:     cell(row, headers, 'ID'),
-    fname:  cell(row, headers, 'Prénom'),
-    lname:  cell(row, headers, 'Nom'),
-    role:   cell(row, headers, 'Rôle'),
-    rate:   parseFloat(cell(row, headers, 'Taux/h ($)')) || 0,
-    phone:  cell(row, headers, 'Téléphone'),
-    email:  cell(row, headers, 'Email'),
-    nas:    cell(row, headers, 'NAS (4 der.)'),
-    active: cell(row, headers, 'Actif') === 'Oui' ? '1' : '0',
+    id:       cell(row, headers, 'ID'),
+    fname:    cell(row, headers, 'Prénom'),
+    lname:    cell(row, headers, 'Nom'),
+    role:     cell(row, headers, 'Rôle'),
+    rate:     parseFloat(cell(row, headers, 'Taux/h ($)')) || 0,
+    phone:    cell(row, headers, 'Téléphone'),
+    email:    cell(row, headers, 'Email'),
+    nas:      cell(row, headers, 'NAS (4 der.)'),
+    active:   cell(row, headers, 'Actif') === 'Oui' ? '1' : '0',
+    teamType: cell(row, headers, 'Type équipe') || 'chantier',
   };
 }
 

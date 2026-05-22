@@ -268,7 +268,7 @@ async function loadData(){
     const ed=await er.json(), cd=await cr.json();
     if(ed.status==='ok'&&Array.isArray(ed.employees)){
       employees=ed.employees
-        .filter(r=>r.id&&r.active==='1')
+        .filter(r=>r.id&&r.active==='1'&&r.teamType!=='bureau')
         .map(r=>({
           id:r.id||'',
           prenom:r.fname||'',
