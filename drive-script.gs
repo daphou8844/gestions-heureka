@@ -519,6 +519,127 @@ function handleUploadFile(data) {
   }
 }
 
+// ── RAPPORT HEBDOMADAIRE D'HEURES ────────────────────────────
+
+/**
+ * Crée un Google Doc de rapport hebdomadaire dans 📁 Heures du chantier.
+ * data: { weekStart, weekEnd, jobId, jobName, driveId,
+ *         punches:[{ empId, empName, date, punchIn, punchOut, heures }] }
+ */
+function createWeeklyReport(data) {
+  var driveId = data.driveId || _findChantierDriveId(data.jobId, data.jobName);
+  var heuresFolder;
+  if (driveId) {
+    heuresFolder = getChantierSubfolder(driveId, 'Heures');
+  } else {
+    var root = _driveRoot();
+    var rhFolder = _getOrCreateFolder(root, DRIVE_FOLDER_NAMES.RH_PAIE);
+    heuresFolder = _getOrCreateFolder(rhFolder, 'Heures Ponctuels');
+  }
+  if (!heuresFolder) throw new Error('Impossible d\'accéder au dossier Heures');
+
+  var docName = 'Heures_Semaine_' + (data.weekStart||'') + '_' + (data.jobId||'CHANTIER');
+  var doc = DocumentApp.create(docName);
+  var docId = doc.getId();
+  var docFile = DriveApp.getFileById(docId);
+  heuresFolder.addFile(docFile);
+  DriveApp.getRootFolder().removeFile(docFile);
+
+  var body = doc.getBody();
+  body.clear();
+
+  var titleP = body.appendParagraph('Rapport d\'heures hebdomadaire — Heuréka Construction');
+  titleP.setHeading(DocumentApp.ParagraphHeading.HEADING1);
+  body.appendParagraph('');
+  body.appendParagraph('Chantier : ' + (data.jobName || ''));
+  body.appendParagraph('Semaine  : ' + (data.weekStart||'') + ' au ' + (data.weekEnd||''));
+  body.appendParagraph('Approuvé le : ' + Utilities.formatDate(new Date(),'America/Toronto','yyyy-MM-dd HH:mm'));
+  body.appendParagraph('');
+
+  // Grouper par employé, colonnes = dates uniques triées
+  var empMap = {}, allDates = [];
+  (data.punches||[]).forEach(function(p) {
+    var key = p.empId || p.empName;
+    if (!empMap[key]) empMap[key] = { name: p.empName, days: {}, total: 0 };
+    var hrs = parseFloat(p.heures) || 0;
+    empMap[key].days[p.date] = (empMap[key].days[p.date]||0) + hrs;
+    empMap[key].total += hrs;
+    if (allDates.indexOf(p.date) < 0) allDates.push(p.date);
+  });
+  allDates.sort();
+
+  var empKeys = Object.keys(empMap);
+  var numRows = empKeys.length + 2; // header + lignes + total
+  var numCols = allDates.length + 2; // Nom + dates + Total
+  var table = body.appendTable();
+
+  // En-tête
+  var hRow = table.appendTableRow();
+  var hCell0 = hRow.appendTableCell('Employé');
+  hCell0.setBackgroundColor('#D4AF37');
+  allDates.forEach(function(d) {
+    var c = hRow.appendTableCell(d.slice(5).replace('-','/'));
+    c.setBackgroundColor('#D4AF37');
+  });
+  var hCellT = hRow.appendTableCell('Total');
+  hCellT.setBackgroundColor('#D4AF37');
+
+  // Lignes employés
+  var dayTotals = {}, grandTotal = 0;
+  allDates.forEach(function(d){ dayTotals[d]=0; });
+
+  empKeys.forEach(function(key) {
+    var emp = empMap[key];
+    var row = table.appendTableRow();
+    row.appendTableCell(emp.name);
+    allDates.forEach(function(d) {
+      var hrs = emp.days[d] || 0;
+      dayTotals[d] += hrs;
+      row.appendTableCell(hrs > 0 ? hrs.toFixed(2)+'h' : '—');
+    });
+    row.appendTableCell(emp.total.toFixed(2)+'h');
+    grandTotal += emp.total;
+  });
+
+  // Ligne total
+  var tRow = table.appendTableRow();
+  var tCell0 = tRow.appendTableCell('TOTAL');
+  tCell0.setBackgroundColor('#f0f0f0');
+  allDates.forEach(function(d) {
+    var c = tRow.appendTableCell(dayTotals[d]>0?dayTotals[d].toFixed(2)+'h':'—');
+    c.setBackgroundColor('#f0f0f0');
+  });
+  var tCellT = tRow.appendTableCell(grandTotal.toFixed(2)+'h');
+  tCellT.setBackgroundColor('#f0f0f0');
+
+  doc.saveAndClose();
+  var docUrl = 'https://docs.google.com/document/d/'+docId;
+  return { docId:docId, docUrl:docUrl, docName:docName };
+}
+
+function handleApproveWeekPunchs(data) {
+  try {
+    var reports = [];
+    (data.chantiers||[]).forEach(function(ch) {
+      if (!ch.punches || !ch.punches.length) return;
+      try {
+        var r = createWeeklyReport({
+          weekStart: data.weekStart, weekEnd: data.weekEnd,
+          jobId: ch.jobId, jobName: ch.jobName, driveId: ch.driveId,
+          punches: ch.punches
+        });
+        reports.push({ jobId:ch.jobId, jobName:ch.jobName, docUrl:r.docUrl, docName:r.docName });
+      } catch(e) {
+        Logger.log('createWeeklyReport error for '+ch.jobName+': '+e);
+      }
+    });
+    return { status:'ok', reports:reports };
+  } catch(e) {
+    Logger.log('handleApproveWeekPunchs: '+e);
+    return { status:'error', message:e.toString() };
+  }
+}
+
 // ── LISTE DES FICHIERS D'UN CHANTIER ─────────────────────────
 
 function listChantierFiles(driveId) {

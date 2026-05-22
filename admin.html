@@ -498,20 +498,25 @@ hr{border:none;border-top:1px solid var(--bdr);margin:18px 0}
         <span>🔗 Google Sheets · Sync automatique toutes les 5s</span>
       </div>
       <div class="toolbar">
-        <div class="fg" style="margin:0;flex:1;min-width:140px">
+        <div class="fg" style="margin:0;min-width:140px">
+          <input type="week" id="punch-week-sel" onchange="renderPunchs()" style="background:var(--bg3);border:1px solid var(--bdr);border-radius:var(--rad2);padding:8px 12px;color:var(--txt);font-size:13px;outline:none">
+        </div>
+        <div class="fg" style="margin:0;min-width:120px">
           <input type="date" id="punch-filter-date" onchange="renderPunchs()">
         </div>
         <select style="background:var(--bg3);border:1px solid var(--bdr);border-radius:var(--rad2);padding:8px 12px;color:var(--txt);font-size:13px;outline:none" id="punch-filter-emp" onchange="renderPunchs()">
           <option value="">Tous les employés</option>
         </select>
         <button class="btn btn-outline btn-sm" onclick="clearPunchFilters()">✕ Effacer</button>
+        <button class="btn btn-gold" onclick="approveWeek()" title="Approuver tous les punchs complets de la semaine sélectionnée">✓ Approuver la semaine</button>
       </div>
+      <div id="approval-banner" style="display:none;background:rgba(76,175,80,.12);border:1px solid rgba(76,175,80,.3);border-radius:8px;padding:10px 16px;margin-bottom:12px;font-size:13px;color:#4CAF50"></div>
       <div class="card" style="padding:0">
         <div class="tbl-wrap">
           <table>
             <thead><tr>
               <th>Employé</th><th>Chantier</th><th>Date</th>
-              <th>Punch In</th><th>Punch Out</th><th>Heures</th><th>Statut</th><th>Actions</th>
+              <th>Punch In</th><th>Punch Out</th><th>Heures</th><th>Statut</th><th>Approbation</th><th>Actions</th>
             </tr></thead>
             <tbody id="punchs-tbody"></tbody>
           </table>
@@ -1647,17 +1652,40 @@ function renderPunchs() {
   populateSelect('punch-filter-emp',emps,'id',empFullName,'Tous les employés');
   renderPunchsTable();
 }
+function _weekRange(weekVal) {
+  // weekVal = "2026-W21" → {start:'2026-05-18', end:'2026-05-24'}
+  if(!weekVal) return null;
+  const [y,w]=weekVal.split('-W').map(Number);
+  const jan4=new Date(y,0,4);
+  const mon=new Date(jan4); mon.setDate(jan4.getDate()-((jan4.getDay()||7)-1)+((w-1)*7));
+  const sun=new Date(mon); sun.setDate(mon.getDate()+6);
+  const iso=d=>d.toLocaleDateString('sv-SE');
+  return {start:iso(mon),end:iso(sun)};
+}
+function getApprovedIds(){ return new Set(JSON.parse(localStorage.getItem('hk_approved_pids')||'[]')); }
+function addApprovedIds(ids){ const s=getApprovedIds(); ids.forEach(id=>s.add(id)); localStorage.setItem('hk_approved_pids',JSON.stringify([...s])); }
+
 function renderPunchsTable() {
   let punchs=DB.get('punchs');
+  const wf=document.getElementById('punch-week-sel')?.value;
   const df=document.getElementById('punch-filter-date')?.value;
   const ef=document.getElementById('punch-filter-emp')?.value;
+  const wr=wf?_weekRange(wf):null;
+  if(wr) punchs=punchs.filter(p=>p.date>=wr.start&&p.date<=wr.end);
   if(df) punchs=punchs.filter(p=>p.date===df);
   if(ef) punchs=punchs.filter(p=>p.empId===ef);
   punchs.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(fmtTime(b.punchIn)||'').localeCompare(fmtTime(a.punchIn)||''));
+  const approved=getApprovedIds();
   document.getElementById('punchs-tbody').innerHTML=punchs.length?punchs.map(p=>{
     const e=getEmp(p.empId), j=getJob(p.jobId);
     const tIn=fmtTime(p.punchIn), tOut=fmtTime(p.punchOut);
     const hrs=tOut?calcHours(tIn,tOut):null;
+    const isApproved=approved.has(p.id);
+    const approvalCell=p.punchOut
+      ? isApproved
+        ? `<span class="badge b-green">✓ Approuvé</span>`
+        : `<button class="btn btn-outline btn-sm" style="color:#4CAF50;border-color:#4CAF50" onclick="approveSinglePunch('${p.id}')">✓ Approuver</button>`
+      : `<span style="font-size:11px;color:rgba(255,255,255,.3)">—</span>`;
     return `<tr>
       <td><div style="display:flex;align-items:center;gap:8px">${empAvatar(e,28)}<span style="font-size:12px;font-weight:700">${empFullName(e)}</span></div></td>
       <td style="font-size:12px">${j.name}</td>
@@ -1666,17 +1694,86 @@ function renderPunchsTable() {
       <td>${tOut?`<span class="badge b-gray">${tOut}`:'<span class="badge b-green">En cours'}</span></td>
       <td style="font-weight:700">${hrs!==null&&hrs>0?fmtHours(hrs):'—'}</td>
       <td>${p.punchOut?`<span class="badge b-green">Complet</span>`:`<span class="badge b-orange">Ouvert</span>`}</td>
+      <td>${approvalCell}</td>
       <td><div style="display:flex;gap:6px">
         <button class="btn btn-outline btn-sm" onclick="editPunch('${p.id}')">✏</button>
         <button class="btn btn-red btn-sm" onclick="deletePunch('${p.id}')">🗑</button>
       </div></td>
     </tr>`;
-  }).join('') : `<tr><td colspan="8"><div class="empty"><div class="empty-ico">⏱</div><div class="empty-ttl">Aucun punch trouvé</div></div></td></tr>`;
+  }).join('') : `<tr><td colspan="9"><div class="empty"><div class="empty-ico">⏱</div><div class="empty-ttl">Aucun punch trouvé</div></div></td></tr>`;
 }
 function clearPunchFilters() {
+  document.getElementById('punch-week-sel').value='';
   document.getElementById('punch-filter-date').value='';
   document.getElementById('punch-filter-emp').value='';
+  document.getElementById('approval-banner').style.display='none';
   renderPunchsTable();
+}
+async function approveSinglePunch(id) {
+  const p=DB.get('punchs').find(x=>x.id===id); if(!p||!p.punchOut) return;
+  const j=getJob(p.jobId)||{}, emp=getEmp(p.empId)||{};
+  toast('Création du rapport Drive...','info');
+  _sheetPost({action:'createPunchReport',
+    driveId:j.driveId||'', empId:p.empId, empName:empFullName(emp), empPrenom:emp.fname||'',
+    jobId:p.jobId, jobName:j.name||'', date:p.date,
+    punchIn:fmtTime(p.punchIn), punchOut:fmtTime(p.punchOut),
+    heures:calcHours(fmtTime(p.punchIn),fmtTime(p.punchOut)).toFixed(2), notes:p.note||''
+  });
+  addApprovedIds([id]);
+  renderPunchsTable();
+  toast('Punch approuvé — rapport créé dans Drive ✓','ok');
+}
+
+async function approveWeek() {
+  const wf=document.getElementById('punch-week-sel')?.value;
+  const wr=wf?_weekRange(wf):null;
+  if(!wr){ toast('Sélectionner une semaine d\'abord','err'); return; }
+  const approved=getApprovedIds();
+  const allPunchs=DB.get('punchs');
+  const toApprove=allPunchs.filter(p=>p.punchOut&&p.date>=wr.start&&p.date<=wr.end&&!approved.has(p.id));
+  if(!toApprove.length){ toast('Aucun punch à approuver pour cette semaine','info'); return; }
+
+  // Grouper par chantier
+  const byJob={};
+  toApprove.forEach(p=>{
+    if(!byJob[p.jobId]) byJob[p.jobId]={jobId:p.jobId,jobName:(getJob(p.jobId)||{}).name||p.jobId,driveId:(getJob(p.jobId)||{}).driveId||'',punches:[]};
+    const emp=getEmp(p.empId)||{};
+    byJob[p.jobId].punches.push({
+      id:p.id, empId:p.empId, empName:empFullName(emp),
+      date:p.date, punchIn:fmtTime(p.punchIn), punchOut:fmtTime(p.punchOut),
+      heures:calcHours(fmtTime(p.punchIn),fmtTime(p.punchOut)).toFixed(2)
+    });
+  });
+
+  const chantiers=Object.values(byJob);
+  const totalHrs=toApprove.reduce((s,p)=>s+calcHours(fmtTime(p.punchIn),fmtTime(p.punchOut)),0);
+  const summary=chantiers.map(c=>`• ${c.jobName} (${c.punches.length} punch${c.punches.length>1?'s':''})`).join('\n');
+  if(!confirm(`Approuver la semaine du ${fmt(wr.start)} au ${fmt(wr.end)} ?\n\n${summary}\n\nTotal : ${fmtHours(totalHrs)} — ${toApprove.length} punchs\n\nUn rapport hebdomadaire sera créé dans le dossier Drive de chaque chantier.`)) return;
+
+  toast('Création des rapports Drive...','info');
+  try {
+    const res=await fetch(HEUREKA_CONFIG.APPS_SCRIPT_URL,{
+      method:'POST', redirect:'follow',
+      body:JSON.stringify({action:'approveWeekPunchs', weekStart:wr.start, weekEnd:wr.end, chantiers})
+    });
+    const data=await res.json();
+    addApprovedIds(toApprove.map(p=>p.id));
+    renderPunchsTable();
+    const banner=document.getElementById('approval-banner');
+    if(data.status==='ok'&&data.reports?.length){
+      const links=data.reports.map(r=>`<a href="${r.docUrl}" target="_blank" style="color:#4CAF50;font-weight:700">${r.jobName}</a>`).join(' · ');
+      banner.innerHTML=`✓ ${data.reports.length} rapport${data.reports.length>1?'s':''} créé${data.reports.length>1?'s':''} dans Drive : ${links}`;
+      banner.style.display='';
+    } else {
+      banner.innerHTML=`✓ ${toApprove.length} punchs approuvés localement (Drive : ${data.message||'vérifier Apps Script'})`;
+      banner.style.display='';
+    }
+    toast('Semaine approuvée ✓','ok');
+  } catch(e) {
+    addApprovedIds(toApprove.map(p=>p.id));
+    renderPunchsTable();
+    toast('Approuvé localement — Drive hors ligne','info');
+  }
 }
 function savePunch() {
   const id=document.getElementById('punch-edit-id').value||uid();

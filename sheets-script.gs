@@ -236,6 +236,9 @@ function doPost(e) {
       case 'createPunchReport':
         result = handlePunchReport(data);
         break;
+      case 'approveWeekPunchs':
+        result = handleApproveWeekPunchs(data);
+        break;
       case 'uploadFile':
         result = handleUploadFile(data);
         break;
