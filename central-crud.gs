@@ -23,6 +23,9 @@ const NEW_SHEETS = {
   MKT_TIKTOK:  'Marketing_TikTok',
   CONFIG:      'Config',
   STRATEGIES:  'Strategies',
+  TACHES:      'Taches',
+  NOTES:       'Notes',
+  MESSAGES:    'Messages',
 };
 
 const NEW_HEADERS = {
@@ -38,6 +41,9 @@ const NEW_HEADERS = {
   MKT_TIKTOK:  ['ID_Tendance',  'Hashtag',      'Vues',             'Score_Pertinence','Date_Capturée',    'Utilisé'],
   CONFIG:      ['Clé',          'Valeur'],
   STRATEGIES:  ['ID_Strategie', 'Nom',          'Plateformes',      'Statut',          'Objectif',         'Budget_Prevu',     'Leads_Vises',       'Projets_Vises',    'Idees',           'Actions',     'Leads_Obtenus',   'Projets_Signes',  'Revenus_Reels',   'Budget_Reel',     'Note_Bilan',      'Bilan_Texte',     'Notes',           'Date_Debut',      'Date_Fin',        'Date_Cree'],
+  TACHES:      ['ID',           'texte',        'assigneeA',        'priorite',        'statut',           'projet',            'dateCreation',     'archivee',         'dateTermine'],
+  NOTES:       ['date',        'auteur',       'texte'],
+  MESSAGES:    ['ID',          'auteur',       'texte',            'heure',           'lu'],
 };
 
 const NEW_COLORS = {
@@ -53,6 +59,9 @@ const NEW_COLORS = {
   MKT_TIKTOK:  { bg: '#0d0d1a', fg: '#00FFFF' },
   CONFIG:      { bg: '#1a1a1a', fg: '#888888' },
   STRATEGIES:  { bg: '#0a1628', fg: '#D4AF37' },
+  TACHES:      { bg: '#0d0d1a', fg: '#c9a84c' },
+  NOTES:       { bg: '#0d1a0d', fg: '#4CAF50' },
+  MESSAGES:    { bg: '#1a0d1a', fg: '#D4AF37' },
 };
 
 const ID_PREFIXES = {
@@ -305,4 +314,41 @@ function _generateId(sheet, prefix) {
 
 function _today() {
   return Utilities.formatDate(new Date(), 'America/Toronto', 'dd/MM/yyyy');
+}
+
+// ── Initialisation onglets Dashboard ─────────────────────────────────────────
+
+/**
+ * Crée les onglets Taches, Notes, Messages s'ils n'existent pas.
+ * À exécuter une fois depuis l'éditeur Apps Script après déploiement.
+ */
+function initDashboardSheets() {
+  var ss = _ss();
+  var dashSheets = ['TACHES', 'NOTES', 'MESSAGES'];
+  var created = [];
+  var skipped = [];
+
+  dashSheets.forEach(function(key) {
+    var name    = NEW_SHEETS[key];
+    var headers = NEW_HEADERS[key];
+    var color   = NEW_COLORS[key] || { bg: '#1a1a1a', fg: '#D4AF37' };
+    var sheet   = ss.getSheetByName(name);
+    if (!sheet) {
+      sheet = ss.insertSheet(name);
+      _formatNewSheet(sheet, headers, color);
+      created.push(name);
+    } else {
+      skipped.push(name);
+    }
+  });
+
+  Logger.log('initDashboardSheets: créés=' + created.join(', ') + ' | ignorés=' + skipped.join(', '));
+  try {
+    SpreadsheetApp.getUi().alert(
+      '✅ initDashboardSheets() terminé!\n\n' +
+      'Créés: ' + (created.join(', ') || 'aucun') + '\n' +
+      'Déjà existants: ' + (skipped.join(', ') || 'aucun') + '\n\n' +
+      'N\'oublie pas de déployer une nouvelle version!'
+    );
+  } catch (e) { /* sans UI */ }
 }
