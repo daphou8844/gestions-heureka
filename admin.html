@@ -2687,6 +2687,237 @@ function renderChantierDetailDocs(files) {
 }
 </script>
 
+<!-- ═══════════════════════════════════════════════════════════
+     HEUREKA CHAT WIDGET — Messagerie interne flottante
+════════════════════════════════════════════════════════════ -->
+<style>
+#fchat-fab{
+  position:fixed;bottom:24px;right:24px;width:54px;height:54px;border-radius:50%;
+  background:linear-gradient(135deg,#D4AF37,#F2C96E);border:none;cursor:pointer;
+  z-index:1050;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 20px rgba(212,175,55,.45);transition:transform .15s,box-shadow .15s;
+}
+#fchat-fab:hover{transform:scale(1.08);box-shadow:0 6px 28px rgba(212,175,55,.6)}
+#fchat-fab svg{pointer-events:none}
+#fchat-badge{
+  position:absolute;top:-3px;right:-3px;background:#EF4444;color:#fff;
+  font-size:10px;font-weight:800;min-width:18px;height:18px;border-radius:9px;
+  display:none;align-items:center;justify-content:center;padding:0 4px;
+  border:2px solid #0A0A0A;
+}
+#fchat-badge.on{display:flex}
+#fchat-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1051;}
+#fchat-overlay.on{display:block}
+#fchat-panel{
+  position:fixed;top:0;right:-420px;width:400px;max-width:100vw;
+  height:100vh;background:#141414;border-left:1px solid #2A2A2A;
+  z-index:1052;display:flex;flex-direction:column;overflow:hidden;
+  transition:right .28s cubic-bezier(.4,0,.2,1);
+}
+#fchat-panel.on{right:0}
+#fchat-hdr{
+  flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;background:#0d0d0d;border-bottom:1px solid #2A2A2A;
+}
+.fch-left{display:flex;align-items:center;gap:10px}
+.fch-av{
+  width:34px;height:34px;border-radius:9px;flex-shrink:0;
+  background:linear-gradient(135deg,#D4AF37,#F2C96E);
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:900;color:#000;
+}
+.fch-app{font-size:13px;font-weight:800;color:#F2C96E}
+.fch-user-row{font-size:11px;font-weight:700;color:#22C55E;display:flex;align-items:center;gap:4px;margin-top:2px;}
+.fch-dot{width:6px;height:6px;border-radius:50%;background:#22C55E;flex-shrink:0}
+#fchat-close-btn{
+  background:none;border:1px solid #2A2A2A;color:#9A9A9A;
+  font-size:10px;font-weight:600;padding:5px 9px;border-radius:20px;
+  cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap;
+}
+#fchat-close-btn:hover{border-color:#D4AF37;color:#D4AF37}
+#fchat-sel{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:12px;padding:28px;background:#0A0A0A;
+}
+.fch-who{font-size:11px;font-weight:700;color:#5A5A5A;text-transform:uppercase;letter-spacing:.9px}
+.fch-sel-btn{
+  width:100%;padding:14px 16px;border-radius:12px;border:1px solid #2A2A2A;
+  background:#1A1A1A;color:#F0F0F0;cursor:pointer;font-family:inherit;
+  text-align:left;display:flex;align-items:center;gap:12px;transition:all .18s;
+}
+.fch-sel-btn:hover{border-color:#D4AF37;background:#1c1700}
+.fch-sel-av{
+  width:38px;height:38px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,#D4AF37,#F2C96E);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:800;color:#000;
+}
+#fchat-msgs{
+  flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;
+  padding:12px 12px 6px;display:flex;flex-direction:column;
+  gap:7px;background:#0A0A0A;
+}
+#fchat-msgs::-webkit-scrollbar{width:3px}
+#fchat-msgs::-webkit-scrollbar-track{background:transparent}
+#fchat-msgs::-webkit-scrollbar-thumb{background:#2A2A2A;border-radius:3px}
+.fch-bbl{max-width:80%;border-radius:14px;padding:9px 13px;font-size:13.5px;line-height:1.5;word-break:break-word;}
+.fch-me{align-self:flex-end;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.28);color:#86efac}
+.fch-other{align-self:flex-start;background:#1e1e1e;border:1px solid #2A2A2A;color:#d4d4d4}
+.fch-author{font-size:10px;font-weight:700;color:#9A9A9A;margin-bottom:3px}
+.fch-time{font-size:9.5px;margin-top:5px;color:#5A5A5A;text-align:right}
+.fch-me .fch-time{color:rgba(34,197,94,.45)}
+.fch-sep{align-self:center;font-size:10px;color:#5A5A5A;background:#141414;padding:3px 11px;border-radius:20px;margin:5px 0;flex-shrink:0;}
+.fch-empty{color:#9A9A9A;font-size:13px;text-align:center;padding:40px 20px;align-self:center}
+.fch-load{color:#5A5A5A;font-size:12px;text-align:center;padding:20px;align-self:center}
+#fchat-foot{
+  flex-shrink:0;display:flex;align-items:flex-end;gap:8px;
+  padding:10px 12px;border-top:1px solid #2A2A2A;background:#141414;
+}
+#fchat-inp{
+  flex:1;background:#1A1A1A;border:1px solid #2A2A2A;border-radius:22px;
+  padding:10px 15px;color:#F0F0F0;font-size:16px;outline:none;
+  font-family:inherit;line-height:1.3;transition:border-color .15s;
+  resize:none;max-height:100px;overflow-y:auto;
+}
+#fchat-inp:focus{border-color:#D4AF37}
+#fchat-inp::placeholder{color:#5A5A5A}
+#fchat-snd{
+  width:40px;height:40px;flex-shrink:0;border-radius:50%;
+  background:linear-gradient(135deg,#D4AF37,#F2C96E);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:opacity .15s;
+}
+#fchat-snd:hover{opacity:.85}
+#fchat-snd:disabled{opacity:.4;cursor:default}
+</style>
+
+<button id="fchat-fab" onclick="fchatToggle()">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+       stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+  </svg>
+  <span id="fchat-badge"></span>
+</button>
+<div id="fchat-overlay" onclick="fchatClose()"></div>
+<div id="fchat-panel">
+  <div id="fchat-hdr">
+    <div class="fch-left">
+      <div class="fch-av">H</div>
+      <div>
+        <div class="fch-app">Heureka Chat</div>
+        <div class="fch-user-row" id="fch-user-row" style="display:none">
+          <span class="fch-dot"></span><span id="fch-username"></span>
+        </div>
+      </div>
+    </div>
+    <button id="fchat-close-btn" onclick="fchatClose()">✕ Fermer</button>
+  </div>
+  <div id="fchat-sel">
+    <div class="fch-who">Qui êtes-vous ?</div>
+    <button class="fch-sel-btn" onclick="fchatPick('Maxime')">
+      <span class="fch-sel-av">M</span>
+      <div><div style="font-size:14px;font-weight:700;color:#F2C96E">Maxime</div><div style="font-size:11px;color:#9A9A9A">Direction</div></div>
+    </button>
+    <button class="fch-sel-btn" onclick="fchatPick('Daphnée')">
+      <span class="fch-sel-av">D</span>
+      <div><div style="font-size:14px;font-weight:700;color:#F2C96E">Daphnée</div><div style="font-size:11px;color:#9A9A9A">Adjointe direction</div></div>
+    </button>
+    <button class="fch-sel-btn" onclick="fchatPick('Anabelle')">
+      <span class="fch-sel-av">A</span>
+      <div><div style="font-size:14px;font-weight:700;color:#F2C96E">Anabelle</div><div style="font-size:11px;color:#9A9A9A">Service aux ventes</div></div>
+    </button>
+  </div>
+  <div id="fchat-msgs" style="display:none"><div class="fch-load">Chargement…</div></div>
+  <div id="fchat-foot" style="display:none">
+    <input id="fchat-inp" type="text" inputmode="text" placeholder="Écrire un message…"
+      autocomplete="off"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();fchatSend();}">
+    <button id="fchat-snd" onclick="fchatSend()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+           stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      </svg>
+    </button>
+  </div>
+</div>
+<script>
+(function(){
+  const GAS=HEUREKA_CONFIG.APPS_SCRIPT_URL,S_U='hchat_user',S_C='hchat_msgs',MAX=80,POLL=5000;
+  let _msgs=JSON.parse(localStorage.getItem(S_C)||'[]'),_timer=null,_open=false,_seen=_msgs.length;
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
+  function getUser(){return localStorage.getItem(S_U)||'';}
+  function setUser(n){localStorage.setItem(S_U,n);}
+  function lDate(d){const t=d||new Date();return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');}
+  function fmtT(iso){if(!iso)return '';try{const d=new Date(iso),t=d.toLocaleTimeString('fr-CA',{hour:'2-digit',minute:'2-digit'});return lDate(d)===lDate()?t:d.toLocaleDateString('fr-CA',{day:'2-digit',month:'2-digit'})+' '+t;}catch(e){return String(iso).substring(11,16);}}
+  async function post(b){try{const r=await fetch(GAS,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify(b)});return await r.json();}catch(e){return null;}}
+
+  window.fchatToggle=function(){_open?fchatClose():fchatOpen();};
+  window.fchatClose=function(){_open=false;$('fchat-panel').classList.remove('on');$('fchat-overlay').classList.remove('on');};
+  window.fchatOpen=function(){
+    _open=true;$('fchat-panel').classList.add('on');$('fchat-overlay').classList.add('on');
+    _seen=_msgs.length;$('fchat-badge').classList.remove('on');
+    getUser()?showChat(getUser()):showSel();
+  };
+
+  function showSel(){$('fchat-sel').style.display='flex';$('fchat-msgs').style.display='none';$('fchat-foot').style.display='none';$('fch-user-row').style.display='none';stopPoll();}
+  function showChat(u){
+    $('fchat-sel').style.display='none';$('fchat-msgs').style.display='flex';
+    $('fchat-foot').style.display='flex';$('fch-user-row').style.display='flex';
+    $('fch-username').textContent=u;
+    if(_msgs.length)render();load();startPoll();
+  }
+  window.fchatPick=function(n){setUser(n);showChat(n);};
+
+  async function load(){
+    if(_msgs.length)render();
+    try{
+      const r=await fetch(GAS+'?action=getData&sheet=Messages',{redirect:'follow'});
+      const d=await r.json();
+      if(Array.isArray(d.data)&&d.data.length){_msgs=d.data.slice(-MAX);localStorage.setItem(S_C,JSON.stringify(_msgs));}
+    }catch(e){if(!_msgs.length)_msgs=JSON.parse(localStorage.getItem(S_C)||'[]');}
+    render();updateBadge();
+  }
+
+  function render(){
+    const el=$('fchat-msgs');if(!el)return;
+    const me=getUser(),atBot=el.scrollHeight-el.scrollTop-el.clientHeight<90;
+    if(!_msgs.length){el.innerHTML='<div class="fch-empty">Aucun message encore.</div>';return;}
+    let html='',lastD='';
+    for(const m of _msgs){
+      const mine=m.auteur===me,d=lDate(new Date(m.heure||Date.now()));
+      if(d!==lastD){const lbl=d===lDate()?"Aujourd'hui":d===lDate(new Date(Date.now()-86400000))?"Hier":d.slice(5).replace('-','/');html+=`<div class="fch-sep">${esc(lbl)}</div>`;lastD=d;}
+      html+=`<div class="fch-bbl ${mine?'fch-me':'fch-other'}">${!mine?`<div class="fch-author">${esc(m.auteur||'—')}</div>`:''}<div>${esc(m.texte||'')}</div><div class="fch-time">${esc(fmtT(m.heure))}</div></div>`;
+    }
+    el.innerHTML=html;
+    if(atBot)el.scrollTop=el.scrollHeight;
+  }
+
+  window.fchatSend=async function(){
+    const inp=$('fchat-inp'),texte=(inp?.value||'').trim();if(!texte)return;
+    const auteur=getUser();if(!auteur)return;
+    const btn=$('fchat-snd');if(btn)btn.disabled=true;
+    const msg={ID:uid(),auteur,texte,heure:new Date().toISOString(),lu:'non'};
+    _msgs.push(msg);inp.value='';render();
+    localStorage.setItem(S_C,JSON.stringify(_msgs.slice(-MAX)));
+    await post({action:'addRow',sheet:'Messages',data:{ID:msg.ID,auteur,texte,heure:msg.heure,lu:'non'}});
+    post({action:'sendChatNotification',auteur,texte}).catch(()=>{});
+    if(btn)btn.disabled=false;
+  };
+
+  function startPoll(){stopPoll();_timer=setInterval(load,POLL);}
+  function stopPoll(){if(_timer){clearInterval(_timer);_timer=null;}}
+  function updateBadge(){
+    if(_open){_seen=_msgs.length;return;}
+    const n=Math.max(0,_msgs.length-_seen),b=$('fchat-badge');
+    if(n>0){b.textContent=n>9?'9+':String(n);b.classList.add('on');}
+  }
+
+  document.addEventListener('DOMContentLoaded',function(){if(getUser())startPoll();});
+  document.addEventListener('visibilitychange',function(){if(!document.hidden&&getUser())startPoll();else stopPoll();});
+})();
+</script>
+
 <!-- Chantier detail drawer -->
 <div id="chan-backdrop" onclick="closeChantierDetail()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:899"></div>
 <div id="chan-drawer" style="position:fixed;top:0;right:-700px;width:660px;max-width:100vw;height:100vh;background:#141414;border-left:1px solid rgba(255,255,255,.1);z-index:900;display:flex;flex-direction:column;transition:right .28s cubic-bezier(.4,0,.2,1);overflow:hidden">
