@@ -256,6 +256,14 @@ function doPost(e) {
         result = data.docId ? deleteRow('Documents', data.docId) : { status:'ok' };
         break;
 
+      // --- Chat FCM (depuis chat.html) ---
+      case 'saveFCMToken':
+        result = saveFCMToken_(data.user, data.token);
+        break;
+      case 'sendChatNotification':
+        result = sendChatPush_(data.auteur, data.texte);
+        break;
+
       default:
         result = { status: 'error', message: 'Action inconnue: ' + action };
     }

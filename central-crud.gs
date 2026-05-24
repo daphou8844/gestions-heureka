@@ -26,6 +26,7 @@ const NEW_SHEETS = {
   TACHES:      'Taches',
   NOTES:       'Notes',
   MESSAGES:    'Messages',
+  FCM_TOKENS:  'FCM_Tokens',
 };
 
 const NEW_HEADERS = {
@@ -44,6 +45,7 @@ const NEW_HEADERS = {
   TACHES:      ['ID',           'texte',        'assigneeA',        'priorite',        'statut',           'projet',            'dateCreation',     'archivee',         'dateTermine'],
   NOTES:       ['date',        'auteur',       'texte'],
   MESSAGES:    ['ID',          'auteur',       'texte',            'heure',           'lu'],
+  FCM_TOKENS:  ['user',        'token',        'updated'],
 };
 
 const NEW_COLORS = {
@@ -62,6 +64,7 @@ const NEW_COLORS = {
   TACHES:      { bg: '#0d0d1a', fg: '#c9a84c' },
   NOTES:       { bg: '#0d1a0d', fg: '#4CAF50' },
   MESSAGES:    { bg: '#1a0d1a', fg: '#D4AF37' },
+  FCM_TOKENS:  { bg: '#0a1a0a', fg: '#4CAF50' },
 };
 
 const ID_PREFIXES = {
@@ -324,7 +327,7 @@ function _today() {
  */
 function initDashboardSheets() {
   var ss = _ss();
-  var dashSheets = ['TACHES', 'NOTES', 'MESSAGES'];
+  var dashSheets = ['TACHES', 'NOTES', 'MESSAGES', 'FCM_TOKENS'];
   var created = [];
   var skipped = [];
 
@@ -351,4 +354,62 @@ function initDashboardSheets() {
       'N\'oublie pas de déployer une nouvelle version!'
     );
   } catch (e) { /* sans UI */ }
+}
+
+// ── FCM — Tokens et envoi de notifications ────────────────────────────────
+
+/**
+ * Enregistre ou met à jour le token FCM d'un utilisateur.
+ * Appelé par chat.html lors de la première ouverture / refresh du token.
+ */
+function saveFCMToken_(user, token) {
+  if (!user || !token) return { status: 'error', message: 'user ou token manquant' };
+  var rows = getData('FCM_Tokens');
+  var existing = null;
+  for (var i = 0; i < rows.length; i++) {
+    if (rows[i].user === user) { existing = rows[i]; break; }
+  }
+  var now = new Date().toISOString();
+  if (existing) {
+    return updateRow('FCM_Tokens', user, { user: user, token: token, updated: now });
+  } else {
+    return addRow('FCM_Tokens', { user: user, token: token, updated: now });
+  }
+}
+
+/**
+ * Envoie une notification FCM push à tous les membres sauf l'expéditeur.
+ * Requiert la clé FCM_SERVER_KEY dans l'onglet Config du Sheet.
+ */
+function sendChatPush_(auteur, texte) {
+  var serverKey = getConfigValue('FCM_SERVER_KEY');
+  if (!serverKey) return { status: 'skip', reason: 'FCM_SERVER_KEY absent dans Config' };
+
+  var rows   = getData('FCM_Tokens');
+  var tokens = [];
+  for (var i = 0; i < rows.length; i++) {
+    if (rows[i].user !== auteur && rows[i].token) tokens.push(rows[i].token);
+  }
+  if (!tokens.length) return { status: 'ok', sent: 0 };
+
+  var payload = JSON.stringify({
+    notification: {
+      title: auteur + ' — Heureka Chat',
+      body:  texte.length > 100 ? texte.substring(0, 97) + '…' : texte
+    },
+    registration_ids: tokens
+  });
+
+  try {
+    var resp = UrlFetchApp.fetch('https://fcm.googleapis.com/fcm/send', {
+      method:          'post',
+      contentType:     'application/json',
+      headers:         { 'Authorization': 'key=' + serverKey },
+      payload:         payload,
+      muteHttpExceptions: true
+    });
+    return { status: 'ok', sent: tokens.length, http: resp.getResponseCode() };
+  } catch (e) {
+    return { status: 'error', message: e.toString() };
+  }
 }
