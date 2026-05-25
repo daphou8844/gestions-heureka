@@ -1203,10 +1203,8 @@ function renderJobsTable(jobs) {
     const empCount = [...new Set(punchs.filter(p=>p.jobId===j.id&&p.date===t&&!p.punchOut).map(p=>p.empId))].length;
     const fm = getEmp(j.foreman);
     const photoCnt = allPhotos.filter(p=>p.jobId===j.id).length;
-    const _jDiff=_echDiffDays(t,j.end);
-    const _jRetard=j.end&&j.status!=='termine'&&_jDiff!==null&&_jDiff<=3;
     return `<tr style="cursor:pointer" onclick="openChantierDetail('${j.id}')">
-      <td><div style="font-weight:700">${j.name}${_jRetard?`<span style="display:inline-block;margin-left:6px;background:#c0392b;color:#fff;font-size:10px;font-weight:800;padding:1px 6px;border-radius:10px;vertical-align:middle">${_jDiff<0?'RETARD':'URGENT'}</span>`  :''}</div><div style="font-size:11px;color:var(--txt2)">${j.notes||''}</div></td>
+      <td><div style="font-weight:700">${j.name}</div><div style="font-size:11px;color:var(--txt2)">${j.notes||''}</div></td>
       <td>${j.client}</td>
       <td style="font-size:12px">${j.address}</td>
       <td onclick="event.stopPropagation()">${jobStatusSelect(j)}</td>
@@ -2576,10 +2574,10 @@ async function uploadJobDocument() {
 // =====================================================
 //  CHANTIER DETAIL DRAWER
 // =====================================================
-let _chanDetailId=null, _chanDetailTab='punch', _chanDetailFiles=null, _echeancierState=null;
+let _chanDetailId=null, _chanDetailTab='punch', _chanDetailFiles=null;
 
 function openChantierDetail(jobId) {
-  _chanDetailId=jobId; _chanDetailTab='punch'; _chanDetailFiles=null; _echeancierState=null;
+  _chanDetailId=jobId; _chanDetailTab='punch'; _chanDetailFiles=null;
   const j=DB.get('jobs').find(x=>x.id===jobId)||{name:'?'};
   document.getElementById('cdet-name').textContent=j.name;
   document.getElementById('cdet-sub').textContent=[j.client,j.address].filter(Boolean).join(' · ');
@@ -2598,124 +2596,12 @@ function switchChantierTab(tab) {
   _chanDetailTab=tab;
   document.getElementById('cdet-punch-panel').style.display=tab==='punch'?'':'none';
   document.getElementById('cdet-docs-panel').style.display=tab==='docs'?'':'none';
-  document.getElementById('cdet-echean-panel').style.display=tab==='echean'?'':'none';
-  const tp=document.getElementById('cdet-tab-punch'), td=document.getElementById('cdet-tab-docs'), te=document.getElementById('cdet-tab-echean');
+  const tp=document.getElementById('cdet-tab-punch'), td=document.getElementById('cdet-tab-docs');
   tp.style.background=tab==='punch'?'#D4AF37':'transparent'; tp.style.color=tab==='punch'?'#000':'rgba(255,255,255,.6)';
   td.style.background=tab==='docs'?'#D4AF37':'transparent';  td.style.color=tab==='docs'?'#000':'rgba(255,255,255,.6)';
-  te.style.background=tab==='echean'?'#D4AF37':'transparent'; te.style.color=tab==='echean'?'#000':'rgba(255,255,255,.6)';
-  if(tab==='punch')  renderChantierDetailPunchs();
-  if(tab==='docs')   loadChantierFiles();
-  if(tab==='echean') renderEcheancier();
+  if(tab==='punch') renderChantierDetailPunchs();
+  if(tab==='docs')  loadChantierFiles();
 }
-// =====================================================
-//  ÉCHÉANCIER
-// =====================================================
-const ECH_PHASES = ['Préparation','Fondation','Structure','Finition','Livraison'];
-
-function _echAddDays(dateStr, n) {
-  if(!dateStr) return '';
-  const d = new Date(dateStr+'T12:00:00'); d.setDate(d.getDate()+n);
-  return d.toLocaleDateString('sv-SE',{timeZone:'America/Toronto'});
-}
-function _echDiffDays(from, to) {
-  if(!from||!to) return null;
-  return Math.round((new Date(to+'T12:00:00')-new Date(from+'T12:00:00'))/86400000);
-}
-function getEcheancier(job) {
-  if(job&&job.echeancier){try{return typeof job.echeancier==='string'?JSON.parse(job.echeancier):JSON.parse(JSON.stringify(job.echeancier));}catch(e){}}
-  return {phases:ECH_PHASES.map(name=>({name,start:'',end:'',pct:0})),jalons:[{label:'',date:''},{label:'',date:''},{label:'',date:''}]};
-}
-function renderEcheancier() {
-  if(!_chanDetailId) return;
-  const panel=document.getElementById('cdet-echean-panel');
-  const j=DB.get('jobs').find(x=>x.id===_chanDetailId);
-  if(!j) return;
-  if(!_echeancierState) _echeancierState=getEcheancier(j);
-  const s=_echeancierState;
-  const totalPct=Math.round(s.phases.reduce((sum,p)=>sum+(p.pct||0),0)/s.phases.length);
-  const t=today();
-  const diffEnd=_echDiffDays(t, j.end);
-  const retard=j.end&&j.status!=='termine'&&diffEnd!==null&&diffEnd<=3;
-  let html='<div style="margin-bottom:16px">';
-  if(retard){
-    const msg=diffEnd<0?`Retard de ${Math.abs(diffEnd)} jour${Math.abs(diffEnd)>1?'s':''}`:diffEnd===0?`Livraison aujourd'hui`:`Livraison dans ${diffEnd} jour${diffEnd>1?'s':''}`;
-    html+=`<div style="background:#c0392b;color:#fff;padding:8px 14px;border-radius:8px;font-weight:700;font-size:13px;margin-bottom:12px">⚠️ ${msg}</div>`;
-  }
-  html+=`<div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:6px;font-weight:700;letter-spacing:.06em">PROGRESSION GLOBALE</div>
-  <div style="background:rgba(255,255,255,.1);border-radius:6px;height:16px;overflow:hidden;margin-bottom:4px"><div id="ech-global-bar" style="height:100%;width:${totalPct}%;background:var(--gold);border-radius:6px;transition:width .3s"></div></div>
-  <div style="text-align:right;font-size:13px;color:var(--gold);font-weight:700" id="ech-global-pct">${totalPct}%</div></div>`;
-  html+=`<div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:10px;font-weight:700;letter-spacing:.06em">PHASES</div>`;
-  s.phases.forEach((ph,i)=>{
-    const pct=ph.pct||0;
-    html+=`<div style="background:rgba(255,255,255,.06);border-radius:10px;padding:12px 14px;margin-bottom:10px">
-      <div style="font-weight:700;font-size:14px;margin-bottom:10px">${ph.name}</div>
-      <div style="display:flex;gap:8px;margin-bottom:10px">
-        <div style="flex:1"><div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:3px">Début</div>
-          <input type="date" value="${ph.start||''}" onchange="echPhaseChange(${i},'start',this.value)" style="width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;color:#fff;padding:5px 8px;font-size:13px"></div>
-        <div style="flex:1"><div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:3px">Fin prévue</div>
-          <input type="date" value="${ph.end||''}" onchange="echPhaseChange(${i},'end',this.value)" style="width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;color:#fff;padding:5px 8px;font-size:13px"></div>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px">
-        <input type="range" min="0" max="100" value="${pct}" oninput="echPctLive(${i},this.value)" onchange="echPhaseChange(${i},'pct',+this.value)" style="flex:1;accent-color:var(--gold)">
-        <span id="ech-ph-pct-${i}" style="color:var(--gold);font-weight:700;font-size:13px;min-width:36px;text-align:right">${pct}%</span>
-      </div>
-      <div style="background:rgba(255,255,255,.1);border-radius:4px;height:6px;overflow:hidden;margin-top:6px">
-        <div id="ech-ph-bar-${i}" style="height:100%;width:${pct}%;background:var(--gold);border-radius:4px;transition:width .2s"></div>
-      </div>
-    </div>`;
-  });
-  html+=`<div style="font-size:11px;color:rgba(255,255,255,.5);margin:16px 0 10px;font-weight:700;letter-spacing:.06em">JALONS CLÉS</div>`;
-  s.jalons.forEach((jl,i)=>{
-    html+=`<div style="display:flex;gap:8px;margin-bottom:8px">
-      <input type="text" placeholder="Jalon (ex: Inspection)" value="${(jl.label||'').replace(/"/g,'&quot;')}" oninput="echJalonChange(${i},'label',this.value)" style="flex:2;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;color:#fff;padding:7px 10px;font-size:13px">
-      <input type="date" value="${jl.date||''}" onchange="echJalonChange(${i},'date',this.value)" style="flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;color:#fff;padding:7px 8px;font-size:13px">
-    </div>`;
-  });
-  html+=`<button onclick="saveEcheancier()" class="btn" style="width:100%;margin-top:12px;background:var(--gold);color:#000;font-weight:700;padding:12px;font-size:14px">💾 Enregistrer l'échéancier</button>`;
-  panel.innerHTML=html;
-}
-function echPhaseChange(idx, field, val) {
-  if(!_echeancierState) return;
-  _echeancierState.phases[idx][field]=field==='pct'?+val:val;
-  const el=document.getElementById(`ech-ph-pct-${idx}`);
-  const bar=document.getElementById(`ech-ph-bar-${idx}`);
-  if(el) el.textContent=_echeancierState.phases[idx].pct+'%';
-  if(bar) bar.style.width=_echeancierState.phases[idx].pct+'%';
-  updateGlobalBar();
-}
-function echPctLive(idx, val) {
-  if(!_echeancierState) return;
-  _echeancierState.phases[idx].pct=+val;
-  const el=document.getElementById(`ech-ph-pct-${idx}`);
-  const bar=document.getElementById(`ech-ph-bar-${idx}`);
-  if(el) el.textContent=val+'%';
-  if(bar) bar.style.width=val+'%';
-  updateGlobalBar();
-}
-function echJalonChange(idx, field, val) {
-  if(!_echeancierState) return;
-  _echeancierState.jalons[idx][field]=val;
-}
-function updateGlobalBar() {
-  if(!_echeancierState) return;
-  const total=Math.round(_echeancierState.phases.reduce((s,p)=>s+(p.pct||0),0)/_echeancierState.phases.length);
-  const bar=document.getElementById('ech-global-bar');
-  const pct=document.getElementById('ech-global-pct');
-  if(bar) bar.style.width=total+'%';
-  if(pct) pct.textContent=total+'%';
-}
-function saveEcheancier() {
-  if(!_chanDetailId||!_echeancierState) return;
-  const jobs=DB.get('jobs');
-  const idx=jobs.findIndex(x=>x.id===_chanDetailId);
-  if(idx<0) return;
-  jobs[idx].echeancier=_echeancierState;
-  DB.set('jobs',jobs);
-  _sheetPost({action:'saveJob',job:jobs[idx]});
-  toast('Échéancier sauvegardé ✓','ok');
-  renderJobsTable(jobs);
-}
-
 function renderChantierDetailPunchs() {
   if(!_chanDetailId) return;
   const panel=document.getElementById('cdet-punch-panel');
@@ -3046,11 +2932,9 @@ function renderChantierDetailDocs(files) {
   <div style="display:flex;border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0">
     <button id="cdet-tab-punch" onclick="switchChantierTab('punch')" style="flex:1;padding:10px;font-size:13px;font-weight:700;border:none;cursor:pointer;background:#D4AF37;color:#000;border-radius:0;transition:background .15s">⏱ Pointages</button>
     <button id="cdet-tab-docs" onclick="switchChantierTab('docs')" style="flex:1;padding:10px;font-size:13px;font-weight:700;border:none;cursor:pointer;background:transparent;color:rgba(255,255,255,.6);border-radius:0;transition:background .15s">📄 Documents</button>
-    <button id="cdet-tab-echean" onclick="switchChantierTab('echean')" style="flex:1;padding:10px;font-size:13px;font-weight:700;border:none;cursor:pointer;background:transparent;color:rgba(255,255,255,.6);border-radius:0;transition:background .15s">📅 Échéancier</button>
   </div>
   <div id="cdet-punch-panel" style="flex:1;overflow-y:auto;padding:16px"></div>
   <div id="cdet-docs-panel" style="flex:1;overflow-y:auto;padding:16px;display:none"></div>
-  <div id="cdet-echean-panel" style="flex:1;overflow-y:auto;padding:16px;display:none"></div>
 </div>
 </body>
 </html>
