@@ -126,6 +126,14 @@ function addRow(sheetName, data) {
   var provided = data[headers[0]] ? data[headers[0]].toString().trim() : '';
   var id      = provided || _generateId(sheet, prefix);
 
+  // Upsert: if a provided ID already exists, update instead of creating a duplicate
+  if (provided) {
+    var existing = findRowById(sheet, provided, 0);
+    if (existing.rowIndex > 0) {
+      return updateRow(sheetName, provided, data);
+    }
+  }
+
   // Injecter l'ID et les valeurs par défaut
   data[headers[0]] = id;
 
