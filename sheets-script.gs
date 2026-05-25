@@ -264,6 +264,11 @@ function doPost(e) {
         result = sendChatPush_(data.auteur, data.texte);
         break;
 
+      // --- Génération IA via Gemini (clé côté serveur) ---
+      case 'generateWithAI':
+        result = generateWithAI_(data);
+        break;
+
       default:
         result = { status: 'error', message: 'Action inconnue: ' + action };
     }
@@ -1172,4 +1177,39 @@ function showDeployUrl() {
     '· admin.html → ⚙ Paramètres → URL Apps Script\n' +
     '· punch.html → ⚙ → URL Google Sheets'
   );
+}
+
+// ============================================================
+//  GÉNÉRATION IA — Gemini côté serveur (clé jamais exposée)
+// ============================================================
+
+function generateWithAI_(data) {
+  var GEMINI_KEY = 'AIzaSyBaULEcu9fgqRIDVg_ZLMVkiau4eV6K43k';
+  var prompt = data.prompt || '';
+  if (!prompt) return { status: 'error', message: 'Prompt manquant' };
+
+  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_KEY;
+  var options = {
+    method: 'POST',
+    contentType: 'application/json',
+    payload: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+    muteHttpExceptions: true
+  };
+
+  try {
+    var response = UrlFetchApp.fetch(url, options);
+    var code = response.getResponseCode();
+    if (code !== 200) {
+      return { status: 'error', message: 'Gemini erreur ' + code + ': ' + response.getContentText().substring(0, 200) };
+    }
+    var json = JSON.parse(response.getContentText());
+    var text = '';
+    if (json.candidates && json.candidates[0] && json.candidates[0].content &&
+        json.candidates[0].content.parts && json.candidates[0].content.parts[0]) {
+      text = json.candidates[0].content.parts[0].text || '';
+    }
+    return { status: 'ok', text: text };
+  } catch(e) {
+    return { status: 'error', message: e.toString() };
+  }
 }
