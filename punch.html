@@ -360,7 +360,8 @@ body{min-height:100%;background:var(--bg);color:var(--txt);font-family:'Inter',s
     <div class="sheet-title">⚙ Paramètres</div>
     <div class="fg">
       <label>URL Google Sheets (Apps Script)</label>
-      <input type="url" id="cfg-url" placeholder="https://script.google.com/macros/s/.../exec">
+      <input type="url" id="cfg-url" readonly style="cursor:default;opacity:.7" value="">
+      <div style="font-size:11px;color:var(--txt2);margin-top:4px">🔒 Défini dans config.js — non modifiable ici</div>
     </div>
     <div class="fg">
       <label>Mon nom (si mal détecté)</label>
@@ -565,7 +566,7 @@ function initMain() {
 
   // Settings
   const cfg = DB.cfg();
-  document.getElementById('cfg-url').value = cfg.scriptUrl||'';
+  document.getElementById('cfg-url').value = HEUREKA_CONFIG.APPS_SCRIPT_URL;
   document.getElementById('cfg-name').value = emp.fname+' '+(emp.lname||'');
 }
 
@@ -1009,7 +1010,7 @@ function renderHistory() {
 // =====================================================
 function openSettings() {
   const cfg = DB.cfg();
-  document.getElementById('cfg-url').value = cfg.scriptUrl||'';
+  document.getElementById('cfg-url').value = HEUREKA_CONFIG.APPS_SCRIPT_URL;
   document.getElementById('cfg-name').value = emp.fname+' '+(emp.lname||'');
   document.getElementById('settings-sheet').classList.add('open');
 }
@@ -1018,7 +1019,7 @@ function closeSettings() {
 }
 function saveSettings() {
   const cfg = DB.cfg();
-  cfg.scriptUrl = document.getElementById('cfg-url').value.trim();
+  cfg.scriptUrl = HEUREKA_CONFIG.APPS_SCRIPT_URL;
   DB.setCfg(cfg);
   closeSettings();
   toast('Paramètres enregistrés ✓','ok');
