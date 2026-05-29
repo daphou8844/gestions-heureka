@@ -2427,6 +2427,12 @@ async function autoSyncPlanning(){
   }catch(e){/*silent*/}
 }
 
+// Auto-initialiser scriptUrl depuis la config centrale si pas déjà défini
+(function(){
+  const cfg=DB.cfg();
+  if(!cfg.scriptUrl){ cfg.scriptUrl=HEUREKA_CONFIG.APPS_SCRIPT_URL; DB.setCfg(cfg); }
+})();
+
 const _SI = HEUREKA_CONFIG.SYNC_INTERVAL_MS;
 setInterval(autoSyncPunchs, _SI);
 setTimeout(autoSyncPunchs, 3000);

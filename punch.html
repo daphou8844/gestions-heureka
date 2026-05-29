@@ -1205,6 +1205,7 @@ async function autoSyncFromSheet() {
   } catch(e) {}
 }
 
+(function(){ const cfg=DB.cfg(); if(!cfg.scriptUrl){ cfg.scriptUrl=HEUREKA_CONFIG.APPS_SCRIPT_URL; DB.setCfg(cfg); } })();
 setTimeout(autoSyncFromSheet, 1500);
 setInterval(autoSyncFromSheet, 60000); // toutes les 60s (appareil mobile)
 
