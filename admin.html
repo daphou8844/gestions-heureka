@@ -2269,21 +2269,31 @@ async function autoSyncJobs(){
       updateSyncTime_();
     }
   } catch(e){ /* silent */ }
-  // Chantiers depuis Pipeline (onglet Chantiers — source de vérité Pipeline)
+  // Projets Gagnés depuis Pipeline (source de vérité)
   try {
-    const mapSt=s=>({termine:'terminé',en_attente:'pause'}[s]||'actif');
-    const cr=await fetch(HEUREKA_CONFIG.APPS_SCRIPT_URL+'?action=getData&sheet=Chantiers',{redirect:'follow'});
-    const cd=await cr.json();
-    if(cd.status==='ok'&&Array.isArray(cd.data)&&cd.data.length){
+    const [rp, rc] = await Promise.all([
+      fetch(HEUREKA_CONFIG.APPS_SCRIPT_URL+'?action=getData&sheet=Projets',{redirect:'follow'}),
+      fetch(HEUREKA_CONFIG.APPS_SCRIPT_URL+'?action=getData&sheet=Clients',{redirect:'follow'}),
+    ]);
+    const dp=await rp.json(); const dc=await rc.json();
+    const projets=Array.isArray(dp.data)?dp.data:[];
+    const clients=Array.isArray(dc.data)?dc.data:[];
+    const clientMap={};
+    clients.forEach(c=>{ if(c.ID_Client) clientMap[c.ID_Client]={nom:c.Nom||'',adresse:c.Adresse||''}; });
+    const gagnes=projets.filter(r=>r.Statut==='gagne'&&r.ID_Projet);
+    if(gagnes.length){
       const local=DB.get('jobs');
-      const fromSheet=cd.data.filter(r=>r.ID_Chantier&&(r.Nom||r.Nom_Chantier)).map(r=>({
-        id:r.ID_Chantier, name:r.Nom||r.Nom_Chantier||'',
-        client:r.Client_ID||'', address:r.Adresse||'',
-        status:mapSt(r.Statut), start:r['Date_Début']||'',
-        end:r['Date_Fin_Prévue']||'', budget:parseFloat(r.Budget)||0,
-        foreman:'', notes:r.Notes||'',
-        isFixedLocation:false, fixedTeam:''
-      }));
+      const fromSheet=gagnes.map(r=>{
+        const cl=clientMap[r.Client_ID]||{};
+        return {
+          id:r.ID_Projet, name:r.Nom_Projet||'',
+          client:cl.nom||r.Client_ID||'', address:cl.adresse||'',
+          status:'actif', start:'', end:'',
+          budget:parseFloat(r['Prix_Estimé'])||0,
+          foreman:'', notes:r.Notes||'',
+          isFixedLocation:false, fixedTeam:''
+        };
+      });
       const merged=fromSheet.map(j=>{const loc=local.find(l=>l.id===j.id)||{};return {...loc,...j};});
       const mergedIds=new Set(merged.map(j=>j.id));
       const localOnly=local.filter(j=>!mergedIds.has(j.id));
