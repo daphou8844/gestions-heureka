@@ -2276,13 +2276,12 @@ async function autoSyncJobs(){
     const cd=await cr.json();
     if(cd.status==='ok'&&Array.isArray(cd.data)&&cd.data.length){
       const local=DB.get('jobs');
-      const fromSheet=cd.data.filter(r=>r.ID_Chantier&&r.Nom_Chantier).map(r=>({
-        id:r.ID_Chantier, name:r.Nom_Chantier||'',
+      const fromSheet=cd.data.filter(r=>r.ID_Chantier&&(r.Nom||r.Nom_Chantier)).map(r=>({
+        id:r.ID_Chantier, name:r.Nom||r.Nom_Chantier||'',
         client:r.Client_ID||'', address:r.Adresse||'',
         status:mapSt(r.Statut), start:r['Date_Début']||'',
         end:r['Date_Fin_Prévue']||'', budget:parseFloat(r.Budget)||0,
-        foreman:r['Contremaître_ID']||'', notes:r.Notes||'',
-        driveId:r.Drive_ID||'', driveUrl:r.Drive_URL||'',
+        foreman:'', notes:r.Notes||'',
         isFixedLocation:false, fixedTeam:''
       }));
       const merged=fromSheet.map(j=>{const loc=local.find(l=>l.id===j.id)||{};return {...loc,...j};});
